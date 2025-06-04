@@ -1,13 +1,12 @@
 package ru.alkoleft.context.platform.dto;
 
-import lombok.Builder;
-import lombok.Value;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
-@Value
-@Builder
-public class ParameterDefinition {
-  boolean required;
-  String name;
-  String description;
-  String type;
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public record ParameterDefinition(
+  boolean required,
+  String name,
+  String description,
+  String type
+) {
 }

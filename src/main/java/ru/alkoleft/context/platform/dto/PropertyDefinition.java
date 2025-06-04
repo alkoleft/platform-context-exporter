@@ -1,13 +1,13 @@
 package ru.alkoleft.context.platform.dto;
 
-import lombok.Builder;
-import lombok.Value;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
-@Value
-@Builder
-public class PropertyDefinition {
-  String name;
-  String description;
-  boolean readonly;
-  String type;
-}
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public record PropertyDefinition(
+  String name,
+  String nameEn,
+  String description,
+  boolean readonly,
+  String type
+) {
+} 

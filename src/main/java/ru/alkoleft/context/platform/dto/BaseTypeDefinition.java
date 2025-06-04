@@ -1,13 +1,11 @@
 package ru.alkoleft.context.platform.dto;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
+import java.util.List;
 
-@Getter
-@RequiredArgsConstructor
-public class BaseTypeDefinition {
-  protected final String name;
-  protected final String description;
-  protected final MethodDefinition[] methods;
-  protected final PropertyDefinition[] properties;
+public record BaseTypeDefinition(
+  String name,
+  String description,
+  List<MethodDefinition> methods,
+  List<PropertyDefinition> properties
+) {
 }

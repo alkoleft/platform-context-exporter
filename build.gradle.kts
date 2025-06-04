@@ -58,10 +58,11 @@ dependencies {
         exclude("org.antlr", "antlr-runtime")
     }
 
-    // JSON
+    // JSON/XML
     implementation("com.fasterxml.jackson.core:jackson-core:$JACKSON_VERSION")
     implementation("com.fasterxml.jackson.core:jackson-databind:$JACKSON_VERSION")
     implementation("com.fasterxml.jackson.core:jackson-annotations:$JACKSON_VERSION")
+    implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-xml:$JACKSON_VERSION")
 
     // Logging
     implementation("org.slf4j", "slf4j-api", "1.7.30")

@@ -9,56 +9,65 @@ import com.github._1c_syntax.bsl.context.api.ContextType;
 import com.github._1c_syntax.bsl.context.platform.PlatformContextType;
 import lombok.experimental.UtilityClass;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @UtilityClass
 public class Factory {
-  public MethodDefinition[] methods(ContextType context) {
+  public List<MethodDefinition> methods(ContextType context) {
     if (context.methods().isEmpty()) {
-      return null;
+      return Collections.emptyList();
     }
     return context.methods().stream()
       .map(Factory::method)
-      .toArray(MethodDefinition[]::new);
+      .collect(Collectors.toList());
   }
 
-  public PropertyDefinition[] properties(ContextType context) {
+  public List<PropertyDefinition> properties(ContextType context) {
     if (context.properties().isEmpty()) {
-      return null;
+      return Collections.emptyList();
     }
     return context.properties().stream()
       .map(Factory::property)
-      .toArray(PropertyDefinition[]::new);
+      .collect(Collectors.toList());
   }
 
   public PropertyDefinition property(ContextProperty property) {
-    return PropertyDefinition.builder()
-      .name(property.name().getName())
-      .description(property.description())
-      .type(returnType(property.types()))
-      .readonly(property.accessMode() == AccessMode.READ)
-      .build();
+    return new PropertyDefinition(
+      property.name().getName(),
+      null, // nameEn
+      property.description(),
+      property.accessMode() == AccessMode.READ,
+      returnType(property.types())
+    );
   }
 
   public MethodDefinition method(ContextMethod method) {
-    return MethodDefinition.builder()
-      .name(method.name().getName())
-      .description(method.description())
-      .signature(signatures(method))
-      .returnType(returnType(method))
-      .build();
+    List<Signature> methodSignatures = signatures(method);
+    List<ParameterDefinition> firstSignatureParams = methodSignatures.isEmpty()
+        ? Collections.emptyList()
+        : methodSignatures.get(0).params();
+
+    return new MethodDefinition(
+        method.description(),
+        firstSignatureParams,
+        method.name().getName(),
+        null, // nameEn
+        methodSignatures,
+        returnType(method)
+    );
   }
 
-  private Signature[] signatures(ContextMethod method) {
+  private List<Signature> signatures(ContextMethod method) {
     return method.signatures().stream()
-      .map(s -> Signature.builder()
-        .description(s.description())
-        .name(s.name().getAlias())
-        .params(s.parameters().stream()
+      .map(s -> new Signature(
+        s.name().getAlias(),
+        s.description(),
+        s.parameters().stream()
           .map(Factory::parameter)
-          .toArray(ParameterDefinition[]::new))
-        .build())
-      .toArray(Signature[]::new);
+          .collect(Collectors.toList())))
+      .collect(Collectors.toList());
   }
 
   public String returnType(ContextMethod method) {
@@ -70,26 +79,25 @@ public class Factory {
   }
 
   public ParameterDefinition parameter(ContextSignatureParameter parameter) {
-    return ParameterDefinition.builder()
-      .name(parameter.name().getName())
-      .description(parameter.description())
-      .required(parameter.isRequired())
-      .type(returnType(parameter.types()))
-      .build();
+    return new ParameterDefinition(
+      parameter.isRequired(),
+      parameter.name().getName(),
+      parameter.description(),
+      returnType(parameter.types())
+    );
   }
 
-  public static Signature[] constructors(PlatformContextType context) {
+  public static List<ISignature> constructors(PlatformContextType context) {
     if (context.constructors().isEmpty()) {
-      return null;
+      return Collections.emptyList();
     }
     return context.constructors().stream()
-      .map(s -> Signature.builder()
-        .description(s.description())
-        .name(s.name().getAlias())
-        .params(s.parameters().stream()
+      .map(s -> new Signature(
+        s.name().getAlias(),
+        s.description(),
+        s.parameters().stream()
           .map(Factory::parameter)
-          .toArray(ParameterDefinition[]::new))
-        .build())
-      .toArray(Signature[]::new);
+          .collect(Collectors.toList())))
+      .collect(Collectors.toList());
   }
 }

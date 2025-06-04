@@ -7,7 +7,10 @@ import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import picocli.CommandLine;
-import ru.alkoleft.context.platform.Serializer;
+import ru.alkoleft.context.platform.exporter.Exporter;
+import ru.alkoleft.context.platform.exporter.JsonExporter;
+import ru.alkoleft.context.platform.exporter.MarkdownExporter;
+import ru.alkoleft.context.platform.exporter.XmlExporter;
 
 import java.io.FileNotFoundException;
 import java.nio.file.Files;
@@ -51,8 +54,15 @@ public class PlatformContext implements Runnable {
 
     var provider = grabber.getProvider();
 
-    Serializer.writeProperties(provider.getGlobalContext(), output);
-    Serializer.writeMethods(provider.getGlobalContext(), output);
-    Serializer.writeTypes(provider.getContexts(), output);
+    Exporter exporter = switch (format.toLowerCase()) {
+      case "json" -> new JsonExporter();
+      case "markdown" -> new MarkdownExporter();
+      case "xml" -> new XmlExporter();
+      default -> throw new IllegalArgumentException("Unsupported format: " + format);
+    };
+
+    exporter.writeProperties(provider.getGlobalContext(), output);
+    exporter.writeMethods(provider.getGlobalContext(), output);
+    exporter.writeTypes(provider.getContexts(), output);
   }
 }
