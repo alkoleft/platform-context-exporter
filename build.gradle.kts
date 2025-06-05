@@ -10,7 +10,7 @@ plugins {
 }
 
 group = "io.github.alkoleft"
-version = "1.0-SNAPSHOT"
+version = "0,1.0-SNAPSHOT"
 
 gitVersioning.apply {
     refs {
@@ -50,13 +50,6 @@ dependencies {
 
     // HBK
     implementation(project(":bsl-context"))
-    implementation("com.github.1c-syntax:bsl-help-toc-parser:ab6c83315d"){
-        exclude("com.tunnelvisionlabs", "antlr4-annotations")
-        exclude("com.ibm.icu", "*")
-        exclude("org.antlr", "ST4")
-        exclude("org.abego.treelayout", "org.abego.treelayout.core")
-        exclude("org.antlr", "antlr-runtime")
-    }
 
     // JSON/XML
     implementation("com.fasterxml.jackson.core:jackson-core:$JACKSON_VERSION")
@@ -71,8 +64,6 @@ dependencies {
     testImplementation("org.slf4j", "slf4j-log4j12", "1.7.30")
     testImplementation(platform("org.junit:junit-bom:5.11.4"))
     testImplementation("org.junit.jupiter:junit-jupiter")
-//    testImplementation("org.springframework.boot:spring-boot-starter-test")
-    // https://mvnrepository.com/artifact/org.assertj/assertj-core
     testImplementation("org.assertj:assertj-core:3.8.0")
 
 }

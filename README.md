@@ -1,6 +1,6 @@
 # platform-context-exporter
 
-Консольное приложение для экспорта информации о контексте платформы 1С:Предприятие (BSL) из файла справки `shcntx_ru.hbk` в формат JSON.
+Консольное приложение для экспорта информации о контексте платформы 1С:Предприятие (BSL) из файла справки `shcntx_ru.hbk` в форматы JSON, XML и Markdown.
 
 ## Обзор
 
@@ -50,236 +50,9 @@ java -jar platform-context-exporter-<версия>.jar platform <путь_к_shc
 java -jar platform-context-exporter-1.0-SNAPSHOT.jar platform /path/to/onec/help/ /output/json/ --format xml
 ```
 
+## Форматы вывода
 
-## Форматы вывода и структура файлов
-
-В результате работы приложения в указанной выходной директории создаются файлы, содержащие информацию о контексте платформы. Формат файлов зависит от выбранной опции `--format`.
-
-### 1. JSON (формат по умолчанию: `--format json`)
-
-При выборе этого формата создаются три JSON-файла:
-
-#### 1.1. `global-properties.json`
-
-Этот файл содержит массив JSON-объектов, описывающих глобальные свойства контекста платформы.
-
-**Структура объекта свойства:**
-
-```json
-{
-  "name": "ИмяСвойства",         // (String) Имя свойства (на русском языке)
-  "name_en": "PropertyName",      // (String) Английский псевдоним свойства
-  "description": "Описание...",   // (String) Описание свойства
-  "readonly": true,               // (boolean) true, если свойство только для чтения, иначе false
-  "type": "ТипСвойства"         // (String, опционально) Тип свойства
-}
-```
-
-#### 1.2. `global-methods.json`
-
-Этот файл содержит массив JSON-объектов, описывающих глобальные методы контекста платформы. Включаются только методы, доступные на сервере или тонком клиенте.
-
-**Структура объекта метода:**
-
-```json
-{
-  "name": "ИмяМетода",             // (String) Имя метода (на русском языке)
-  "name_en": "MethodName",          // (String) Английский псевдоним метода
-  "description": "Описание...",       // (String) Описание метода
-  "signature": [                    // (Array) Массив сигнатур метода
-    {
-      "description": "Описание сигнатуры...", // (String) Описание конкретной сигнатуры
-      "params": [                       // (Array) Массив параметров для данной сигнатуры
-        {
-          "name": "ИмяПараметра",   // (String) Имя параметра
-          "description": "Описание...",// (String) Описание параметра
-          "type": "ТипПараметра",   // (String, опционально) Тип параметра
-          "required": false         // (boolean, опционально) true, если параметр обязательный (присутствует, если false)
-        }
-        // ... другие параметры
-      ]
-    }
-    // ... другие сигнатуры (если есть)
-  ],
-  "return": "ТипВозвращаемогоЗначения" // (String, опционально) Тип возвращаемого значения метода
-}
-```
-
-#### 1.3. `types.json`
-
-Этот файл содержит массив JSON-объектов, описывающих типы данных платформы.
-
-**Структура объекта типа (`PlatformTypeDefinition`):**
-
-```json
-{
-  "name": "ИмяТипа",              // (String) Имя типа
-  "description": null,             // (String) Описание типа (может быть null)
-  "methods": [                    // (Array) Массив объектов MethodDefinition (см. ниже)
-    // ...
-  ],
-  "properties": [                 // (Array) Массив объектов PropertyDefinition (см. ниже)
-    // ...
-  ],
-  "constructors": [               // (Array) Массив объектов Signature (описание конструкторов, см. ниже)
-    // ...
-  ]
-}
-```
-
-**Структура `MethodDefinition` (для методов типа):**
-
-```json
-{
-  "description": "Описание метода...", // (String) Описание метода из MethodSignature
-  "params": [                       // (Array) Массив ParameterDefinition из MethodSignature
-    // ... см. ParameterDefinition ...
-  ],
-  "name": "ИмяМетодаТипа",         // (String) Имя метода
-  "signature": [                    // (Array) Массив объектов Signature (для перегрузок метода)
-    // ... см. Signature ...
-  ],
-  "return": "ТипВозврата"          // (String) Тип возвращаемого значения (поле returnType)
-}
-```
-
-**Структура `PropertyDefinition` (для свойств типа):**
-
-```json
-{
-  "name": "ИмяСвойства",         // (String) Имя свойства
-  "description": "Описание...",   // (String) Описание свойства
-  "readonly": true,               // (boolean) true, если свойство только для чтения
-  "type": "ТипСвойства"         // (String) Тип свойства
-}
-```
-
-**Структура `Signature` (для конструкторов и сигнатур методов):**
-
-```json
-{
-  "description": "Описание сигнатуры/конструктора...", // (String) Описание из MethodSignature
-  "params": [                                   // (Array) Массив ParameterDefinition из MethodSignature
-    // ... см. ParameterDefinition ...
-  ],
-  "name": "ИмяСигнатуры"                         // (String) Имя сигнатуры (например, "Основной" или имя для перегрузки)
-}
-```
-
-**Структура `ParameterDefinition` (для параметров):**
-
-```json
-{
-  "required": false,              // (boolean) true, если параметр обязательный
-  "name": "ИмяПараметра",         // (String) Имя параметра
-  "description": "Описание...",   // (String) Описание параметра
-  "type": "ТипПараметра"         // (String) Тип параметра
-}
-```
-При сериализации в `types.json` поля со значением `null` не включаются в итоговый JSON.
-
-### 2. XML (формат: `--format xml`)
-
-При выборе этого формата создаются три XML-файла. Структура данных внутри каждого элемента аналогична соответствующим JSON-объектам, но представлена с использованием XML-тегов.
-
-#### 2.1. `global-properties.xml`
-Корневой элемент `<properties>`. Содержит список элементов `<property>`, каждый из которых описывает глобальное свойство.
-Пример структуры элемента `<property>`:
-```xml
-<property>
-  <name>ИмяСвойства</name>
-  <name_en>PropertyName</name_en>
-  <description>Описание...</description>
-  <readonly>true</readonly>
-  <type>ТипСвойства</type>
-</property>
-```
-
-#### 2.2. `global-methods.xml`
-Корневой элемент `<methods>`. Содержит список элементов `<method>`, каждый из которых описывает глобальный метод.
-Пример структуры элемента `<method>`:
-```xml
-<method>
-  <name>ИмяМетода</name>
-  <name_en>MethodName</name_en>
-  <description>Описание...</description>
-  <signature>
-    <signatureItem> <!-- Может быть несколько таких элементов для перегруженных методов -->
-      <description>Описание сигнатуры...</description>
-      <params>
-        <param>
-          <name>ИмяПараметра</name>
-          <description>Описание...</description>
-          <type>ТипПараметра</type>
-          <required>false</required>
-        </param>
-        <!-- ... другие параметры ... -->
-      </params>
-    </signatureItem>
-  </signature>
-  <return>ТипВозвращаемогоЗначения</return>
-</method>
-```
-
-#### 2.3. `types.xml`
-Корневой элемент `<types>`. Содержит список элементов `<type>`, каждый из которых описывает тип данных платформы.
-Структура элементов `<type>`, `<methods>`, `<method>`, `<properties>`, `<property>`, `<constructors>`, `<constructor>`, `<params>`, `<param>` аналогична их JSON-эквивалентам (`PlatformTypeDefinition`, `MethodDefinition`, `PropertyDefinition`, `Signature`, `ParameterDefinition`).
-
-### 3. Markdown (формат: `--format markdown`)
-
-При выборе этого формата создаются три файла с расширением `.md`, отформатированные для удобного чтения. Каждый файл состоит из записей (сниппетов), разделенных горизонтальной линией (`----------------------------------------`).
-
-#### 3.1. `global-properties.md`
-Каждое глобальное свойство описывается в следующем формате:
-```markdown
-TITLE: Global Property: ИмяСвойства
-DESCRIPTION: Описание свойства (если доступно)
-Name: ИмяСвойства
-Readonly: true/false
-Type: ТипСвойства (если доступно)
-```
-
-#### 3.2. `global-methods.md`
-Каждый глобальный метод описывается в следующем формате:
-```markdown
-TITLE: Global Method: ИмяМетода
-DESCRIPTION: Описание метода (если доступно)
-Name: ИмяМетода
-
-Signatures:
-  ---
-  ИмяМетода(ИмяПараметра1:ТипПараметра1, ИмяПараметра2:ТипПараметра2):ВозвращаемыйТип
-    Description: Описание конкретной сигнатуры (если доступно)
-    Parameters:
-      - ИмяПараметра1: ТипПараметра1 (required/optional) - Описание параметра (если доступно)
-      - ИмяПараметра2: ТипПараметра2 (required/optional) - Описание параметра (если доступно)
-  ---
-  (могут быть и другие сигнатуры)
-```
-
-#### 3.3. `types.md`
-Каждый тип данных платформы описывается в следующем формате:
-```markdown
-TITLE: Type: ИмяТипа
-DESCRIPTION: Описание типа (если доступно)
-Name: ИмяТипа
-
-Properties:
-  - ИмяСвойства (АнглИмяЕслиЕсть): ТипСвойства (readonly/readwrite) - Описание свойства (если доступно)
-  (или "(No properties)", если свойств нет)
-
-Methods:
-  ---
-  Method: ИмяМетодаТипа
-    Description: Описание метода (если доступно)
-    Signatures:
-      ---
-      ИмяМетодаТипа(ИмяПараметра1:ТипПараметра1):ВозвращаемыйТип
-        Description: Описание конкретной сигнатуры (если доступно)
-        Parameters:
-          - ИмяПараметра1: ТипПараметра1 (required/optional) - Описание параметра (если доступно)
-  (или "(No methods)", если методов нет)
-```
+Подробное описание форматов вывода и структуры генерируемых файлов вынесено в [отдельную документацию](./documentation/formats.md).
 
 ## Зависимости
 
@@ -288,9 +61,10 @@ Methods:
 *   Spring Boot
 *   Picocli (для CLI)
 *   Jackson (для работы с JSON)
-*   `com.github._1c_syntax.bsl-context` (для парсинга `shcntx_ru.hbk`)
+*   [bsl-context](https://github.com/1c-syntax/bsl-context) (от [1c-syntax](https://github.com/1c-syntax/))
+*   [bsl-help-toc-parser](https://github.com/1c-syntax/bsl-help-toc-parser) (от [1c-syntax](https://github.com/1c-syntax/)) для парсинга `shcntx_ru.hbk`
 *   Lombok
 
 ## Лицензия
 
-Информация о лицензии отсутствует в исходном коде. Уточните у автора проекта.
+Этот проект распространяется под лицензией MIT. Подробную информацию смотрите в файле [LICENSE](LICENSE).
