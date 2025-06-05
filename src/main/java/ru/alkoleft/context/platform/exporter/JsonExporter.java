@@ -7,6 +7,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github._1c_syntax.bsl.context.api.Context;
 import com.github._1c_syntax.bsl.context.platform.PlatformGlobalContext;
 import ru.alkoleft.context.platform.dto.PlatformTypeDefinition;
+import ru.alkoleft.context.platform.dto.MethodDefinition;
+import ru.alkoleft.context.platform.dto.PropertyDefinition;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -33,25 +35,22 @@ public class JsonExporter implements Exporter {
     try (var generator = jfactory.createGenerator(file, JsonEncoding.UTF8)) {
       generator.writeStartArray();
       try (var properties = logic.extractProperties(context)) {
-        properties.forEachOrdered(property -> {
-          try {
-            generator.writeStartObject();
-            generator.writeStringField("name", property.name());
-            if (property.nameEn() != null) {
-              generator.writeStringField("name_en", property.nameEn());
-            }
-            if (property.description() != null) {
-              generator.writeStringField("description", property.description());
-            }
-            generator.writeBooleanField("readonly", property.readonly());
-            if (property.type() != null) {
-              generator.writeStringField("type", property.type());
-            }
-            generator.writeEndObject();
-          } catch (IOException e) {
-            throw new RuntimeException(e);
+        List<PropertyDefinition> propertyList = properties.toList();
+        for (PropertyDefinition property : propertyList) {
+          generator.writeStartObject();
+          generator.writeStringField("name", property.name());
+          if (property.nameEn() != null) {
+            generator.writeStringField("name_en", property.nameEn());
           }
-        });
+          if (property.description() != null) {
+            generator.writeStringField("description", property.description());
+          }
+          generator.writeBooleanField("readonly", property.readonly());
+          if (property.type() != null) {
+            generator.writeStringField("type", property.type());
+          }
+          generator.writeEndObject();
+        }
       }
       generator.writeEndArray();
     }
@@ -66,49 +65,46 @@ public class JsonExporter implements Exporter {
     try (var generator = jfactory.createGenerator(file, JsonEncoding.UTF8)) {
       generator.writeStartArray();
       try (var methods = logic.extractMethods(context)) {
-        methods.forEachOrdered(method -> {
-          try {
-            generator.writeStartObject();
-            generator.writeStringField("name", method.name());
-            if (method.description() != null) {
-              generator.writeStringField("description", method.description());
-            }
-            generator.writeArrayFieldStart("signature");
-            if (method.signature() != null) {
-              for (var sig : method.signature()) {
-                generator.writeStartObject();
-                if (sig.description() != null) {
-                  generator.writeStringField("description", sig.description());
-                }
-                generator.writeArrayFieldStart("params");
-                if (sig.params() != null) {
-                  for (var param : sig.params()) {
-                    generator.writeStartObject();
-                    generator.writeStringField("name", param.name());
-                    if (param.description() != null) {
-                      generator.writeStringField("description", param.description());
-                    }
-                    if (param.type() != null) {
-                      generator.writeStringField("type", param.type());
-                    }
-                    generator.writeBooleanField("required", param.required());
-                    generator.writeEndObject();
-                  }
-                }
-                generator.writeEndArray();
-                generator.writeEndObject();
-              }
-            }
-            generator.writeEndArray();
-
-            if (method.returnType() != null) {
-              generator.writeStringField("return", method.returnType());
-            }
-            generator.writeEndObject();
-          } catch (IOException e) {
-            throw new RuntimeException(e);
+        List<MethodDefinition> methodList = methods.toList();
+        for (MethodDefinition method : methodList) {
+          generator.writeStartObject();
+          generator.writeStringField("name", method.name());
+          if (method.description() != null) {
+            generator.writeStringField("description", method.description());
           }
-        });
+          generator.writeArrayFieldStart("signature");
+          if (method.signature() != null) {
+            for (var sig : method.signature()) {
+              generator.writeStartObject();
+              if (sig.description() != null) {
+                generator.writeStringField("description", sig.description());
+              }
+              generator.writeArrayFieldStart("params");
+              if (sig.params() != null) {
+                for (var param : sig.params()) {
+                  generator.writeStartObject();
+                  generator.writeStringField("name", param.name());
+                  if (param.description() != null) {
+                    generator.writeStringField("description", param.description());
+                  }
+                  if (param.type() != null) {
+                    generator.writeStringField("type", param.type());
+                  }
+                  generator.writeBooleanField("required", param.required());
+                  generator.writeEndObject();
+                }
+              }
+              generator.writeEndArray();
+              generator.writeEndObject();
+            }
+          }
+          generator.writeEndArray();
+
+          if (method.returnType() != null) {
+            generator.writeStringField("return", method.returnType());
+          }
+          generator.writeEndObject();
+        }
       }
       generator.writeEndArray();
     }
@@ -126,13 +122,10 @@ public class JsonExporter implements Exporter {
     try (var generator = mapper.getFactory().createGenerator(file, JsonEncoding.UTF8)) {
       generator.writeStartArray();
       try (var types = logic.extractTypes(contexts)) {
-        types.forEachOrdered(typeDef -> {
-          try {
-            objectWriter.writeValue(generator, typeDef);
-          } catch (IOException e) {
-            throw new RuntimeException(e);
-          }
-        });
+        List<PlatformTypeDefinition> typeList = types.toList();
+        for (PlatformTypeDefinition typeDef : typeList) {
+          objectWriter.writeValue(generator, typeDef);
+        }
       }
       generator.writeEndArray();
     } catch (IOException e) {

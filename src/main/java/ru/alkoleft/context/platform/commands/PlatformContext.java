@@ -10,6 +10,7 @@ import picocli.CommandLine;
 import ru.alkoleft.context.platform.exporter.ContextExporter;
 import ru.alkoleft.context.platform.exporter.Exporter;
 import ru.alkoleft.context.platform.exporter.JsonExporter;
+import ru.alkoleft.context.platform.exporter.MarkdownExporter;
 import ru.alkoleft.context.platform.exporter.XmlExporter;
 
 import java.io.FileNotFoundException;
@@ -26,7 +27,7 @@ public class PlatformContext implements Runnable {
   private Path path;
   @CommandLine.Parameters(description = "out")
   private Path output;
-  @CommandLine.Option(names = "--format", description = "Output format: json, markdown, xml (default: ${DEFAULT-VALUE})", defaultValue = "json")
+  @CommandLine.Option(names = "--format", description = "Output format: json, markdown, xml, context (default: ${DEFAULT-VALUE})", defaultValue = "json")
   private String format;
 
   @Override
@@ -56,13 +57,20 @@ public class PlatformContext implements Runnable {
 
     Exporter exporter = switch (format.toLowerCase()) {
       case "json" -> new JsonExporter();
-      case "markdown" -> new ContextExporter();
+      case "markdown" -> new MarkdownExporter();
       case "xml" -> new XmlExporter();
+      case "context" -> new ContextExporter();
       default -> throw new IllegalArgumentException("Unsupported format: " + format);
     };
 
-    exporter.writeProperties(provider.getGlobalContext(), output);
-    exporter.writeMethods(provider.getGlobalContext(), output);
-    exporter.writeTypes(provider.getContexts(), output);
+    if (format.equalsIgnoreCase("markdown")) {
+        exporter.writeProperties(provider.getGlobalContext(), output.resolve("properties.md"));
+        exporter.writeMethods(provider.getGlobalContext(), output.resolve("methods.md"));
+        exporter.writeTypes(provider.getContexts(), output.resolve("types.md"));
+    } else {
+        exporter.writeProperties(provider.getGlobalContext(), output);
+        exporter.writeMethods(provider.getGlobalContext(), output);
+        exporter.writeTypes(provider.getContexts(), output);
+    }
   }
 }
