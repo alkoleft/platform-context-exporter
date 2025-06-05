@@ -35,8 +35,7 @@ public class XmlExporter implements Exporter {
 
   @Override
   public void writeProperties(PlatformGlobalContext context, Path output) throws IOException {
-    var file = output.resolve("global-properties.xml").toFile();
-    System.out.println("Writing global properties to: " + file.getAbsolutePath());
+    var file = output.toFile();
 
     try (Stream<PropertyDefinition> properties = logic.extractProperties(context)) {
       // Оборачиваем Stream в List для сериализации корневого элемента
@@ -47,8 +46,7 @@ public class XmlExporter implements Exporter {
 
   @Override
   public void writeMethods(PlatformGlobalContext context, Path output) throws IOException {
-    var file = output.resolve("global-methods.xml").toFile();
-    System.out.println("Writing global methods to: " + file.getAbsolutePath());
+    var file = output.toFile();
 
     try (Stream<MethodDefinition> methods = logic.extractMethods(context)) {
       // Оборачиваем Stream в List для сериализации корневого элемента
@@ -59,13 +57,17 @@ public class XmlExporter implements Exporter {
 
   @Override
   public void writeTypes(List<Context> contexts, Path output) throws IOException {
-    var file = output.resolve("types.xml").toFile();
-    System.out.println("Writing types to: " + file.getAbsolutePath());
+    var file = output.toFile();
 
     try (Stream<PlatformTypeDefinition> types = logic.extractTypes(contexts)) {
       // Оборачиваем Stream в List для сериализации корневого элемента
       List<PlatformTypeDefinition> typeList = types.toList();
       xmlMapper.writer().withRootName("types").writeValue(file, typeList);
     }
+  }
+
+  @Override
+  public String getExtension() {
+    return ".xml";
   }
 } 

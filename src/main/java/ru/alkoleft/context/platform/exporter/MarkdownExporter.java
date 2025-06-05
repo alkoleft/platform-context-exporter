@@ -172,4 +172,9 @@ public class MarkdownExporter implements Exporter {
         }
         return text.replace("\n", " ").replace("|", "\\|");
     }
+
+    @Override
+    public String getExtension() {
+        return ".md";
+    }
 } 

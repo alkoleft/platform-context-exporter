@@ -78,9 +78,8 @@ public class ContextExporter implements Exporter {
 
   @Override
   public void writeProperties(PlatformGlobalContext context, Path output) throws IOException {
-    Path file = output.resolve("global-properties.txt");
     writeEntries(
-      file,
+      output,
       "Exporting global properties to: {}",
       () -> logic.extractProperties(context),
       (writer, property) -> {
@@ -94,9 +93,8 @@ public class ContextExporter implements Exporter {
 
   @Override
   public void writeMethods(PlatformGlobalContext context, Path output) throws IOException {
-    Path file = output.resolve("global-methods.txt");
     writeEntries(
-      file,
+      output,
       "Exporting global methods to: {}",
       () -> logic.extractMethods(context),
       (writer, method) -> {
@@ -204,9 +202,8 @@ public class ContextExporter implements Exporter {
 
   @Override
   public void writeTypes(List<Context> contexts, Path output) throws IOException {
-    Path file = output.resolve("types.txt");
     writeEntries(
-      file,
+      output,
       "Exporting types to: {}",
       () -> logic.extractTypes(contexts),
       (writer, typeDef) -> {
@@ -216,6 +213,11 @@ public class ContextExporter implements Exporter {
         appendTypeMethods(writer, typeDef.methods());
       }
     );
+  }
+
+  @Override
+  public String getExtension() {
+    return ".txt";
   }
 
   @FunctionalInterface

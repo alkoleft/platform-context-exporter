@@ -29,8 +29,7 @@ public class JsonExporter implements Exporter {
   @Override
   public void writeProperties(PlatformGlobalContext context, Path output) throws IOException {
     var jfactory = new JsonFactory();
-    var file = output.resolve("global-properties.json").toFile();
-    System.out.println(file);
+    var file = output.toFile();
 
     try (var generator = jfactory.createGenerator(file, JsonEncoding.UTF8)) {
       generator.writeStartArray();
@@ -59,8 +58,7 @@ public class JsonExporter implements Exporter {
   @Override
   public void writeMethods(PlatformGlobalContext context, Path output) throws IOException {
     var jfactory = new JsonFactory();
-    var file = output.resolve("global-methods.json").toFile();
-    System.out.println(file);
+    var file = output.toFile();
 
     try (var generator = jfactory.createGenerator(file, JsonEncoding.UTF8)) {
       generator.writeStartArray();
@@ -112,8 +110,7 @@ public class JsonExporter implements Exporter {
 
   @Override
   public void writeTypes(List<Context> contexts, Path output) throws IOException {
-    var file = output.resolve("types.json").toFile();
-    System.out.println(file);
+    var file = output.toFile();
 
     var mapper = new ObjectMapper()
       .setSerializationInclusion(JsonInclude.Include.NON_NULL);
@@ -134,5 +131,10 @@ public class JsonExporter implements Exporter {
       }
       throw new RuntimeException(e);
     }
+  }
+
+  @Override
+  public String getExtension() {
+    return ".json";
   }
 }

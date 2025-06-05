@@ -63,14 +63,18 @@ public class PlatformContext implements Runnable {
       default -> throw new IllegalArgumentException("Unsupported format: " + format);
     };
 
-    if (format.equalsIgnoreCase("markdown")) {
-        exporter.writeProperties(provider.getGlobalContext(), output.resolve("properties.md"));
-        exporter.writeMethods(provider.getGlobalContext(), output.resolve("methods.md"));
-        exporter.writeTypes(provider.getContexts(), output.resolve("types.md"));
-    } else {
-        exporter.writeProperties(provider.getGlobalContext(), output);
-        exporter.writeMethods(provider.getGlobalContext(), output);
-        exporter.writeTypes(provider.getContexts(), output);
-    }
+    var extension = exporter.getExtension();
+    var propertiesFile = output.resolve("global-properties" + extension);
+    var methodsFile = output.resolve("global-methods" + extension);
+    var typesFile = output.resolve("types" + extension);
+
+    log.info("Writing properties to {}", propertiesFile);
+    exporter.writeProperties(provider.getGlobalContext(), propertiesFile);
+
+    log.info("Writing methods to {}", methodsFile);
+    exporter.writeMethods(provider.getGlobalContext(), methodsFile);
+
+    log.info("Writing types to {}", typesFile);
+    exporter.writeTypes(provider.getContexts(), typesFile);
   }
 }

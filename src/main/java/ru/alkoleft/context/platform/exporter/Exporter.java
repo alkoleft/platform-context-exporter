@@ -13,4 +13,6 @@ public interface Exporter {
   void writeMethods(PlatformGlobalContext context, Path output) throws IOException;
 
   void writeTypes(List<Context> contexts, Path output) throws IOException;
+
+  String getExtension();
 } 

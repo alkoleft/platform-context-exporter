@@ -58,7 +58,7 @@ dependencies {
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-xml:$JACKSON_VERSION")
 
     // Logging
-    implementation("org.slf4j", "slf4j-api", "1.7.30")
+    implementation("ch.qos.logback:logback-classic:1.4.14")
 
     // Tests
     testImplementation("org.slf4j", "slf4j-log4j12", "1.7.30")
