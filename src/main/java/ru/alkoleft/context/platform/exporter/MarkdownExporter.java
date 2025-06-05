@@ -2,6 +2,7 @@ package ru.alkoleft.context.platform.exporter;
 
 import com.github._1c_syntax.bsl.context.api.Context;
 import com.github._1c_syntax.bsl.context.platform.PlatformGlobalContext;
+import ru.alkoleft.context.platform.dto.ISignature;
 import ru.alkoleft.context.platform.dto.MethodDefinition;
 import ru.alkoleft.context.platform.dto.ParameterDefinition;
 import ru.alkoleft.context.platform.dto.PlatformTypeDefinition;
@@ -51,17 +52,22 @@ public class MarkdownExporter implements Exporter {
 
         try (var types = logic.extractTypes(contexts)) {
             types.sorted(Comparator.comparing(PlatformTypeDefinition::name))
-                .forEach(context -> {
-                    markdown.append("## ").append(context.name()).append("\n\n");
+                .forEach(type -> {
+                    markdown.append("## ").append(type.name()).append("\n\n");
 
-                    if (!context.properties().isEmpty()) {
-                        markdown.append("### Свойства\n\n");
-                        appendProperties(markdown, context.properties());
+                    if (type.constructors() != null && !type.constructors().isEmpty()) {
+                        markdown.append("### Конструкторы\n\n");
+                        type.constructors().forEach(constructor -> appendConstructorDetails(markdown, constructor, type));
                     }
 
-                    if (!context.methods().isEmpty()) {
+                    if (!type.properties().isEmpty()) {
+                        markdown.append("### Свойства\n\n");
+                        appendProperties(markdown, type.properties());
+                    }
+
+                    if (!type.methods().isEmpty()) {
                         markdown.append("### Методы\n\n");
-                        appendMethods(markdown, context.methods(), "####");
+                        appendMethods(markdown, type.methods(), "####");
                     }
                 });
         }
@@ -110,6 +116,31 @@ public class MarkdownExporter implements Exporter {
         methods.stream()
                 .sorted(Comparator.comparing(MethodDefinition::name))
                 .forEach(method -> appendMethodDetails(markdown, method, headerLevel));
+    }
+
+    private void appendConstructorDetails(StringBuilder markdown, ISignature constructor, PlatformTypeDefinition type) {
+        appendConstructorHeader(markdown, constructor);
+        appendConstructorSignature(markdown, constructor, type);
+        appendParameterTable(markdown, constructor.params());
+    }
+
+    private void appendConstructorHeader(StringBuilder markdown, ISignature constructor) {
+        markdown.append("#### ").append(constructor.name()).append("\n\n");
+        if (constructor.description() != null && !constructor.description().isEmpty()) {
+            markdown.append(constructor.description()).append("\n\n");
+        }
+    }
+
+    private void appendConstructorSignature(StringBuilder markdown, ISignature constructor, PlatformTypeDefinition type) {
+        markdown.append("```bsl\n");
+        markdown.append("Новый ").append(type.name()).append("(").append(formatParametersForSignature(constructor.params())).append(")").append("\n");
+        markdown.append("```\n\n");
+    }
+
+    private void appendSignatureBlockForConstructorWithoutParams(StringBuilder markdown, PlatformTypeDefinition type) {
+        markdown.append("```bsl\n");
+        markdown.append("Новый ").append(type.name()).append("()");
+        markdown.append("\n```\n\n");
     }
 
     private void appendMethodDetails(StringBuilder markdown, MethodDefinition method, String headerLevel) {

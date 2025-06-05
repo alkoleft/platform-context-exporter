@@ -3,8 +3,10 @@ package ru.alkoleft.context.platform.exporter;
 import com.github._1c_syntax.bsl.context.api.Context;
 import com.github._1c_syntax.bsl.context.platform.PlatformGlobalContext;
 import lombok.extern.slf4j.Slf4j;
+import ru.alkoleft.context.platform.dto.ISignature;
 import ru.alkoleft.context.platform.dto.MethodDefinition;
 import ru.alkoleft.context.platform.dto.ParameterDefinition;
+import ru.alkoleft.context.platform.dto.PlatformTypeDefinition;
 import ru.alkoleft.context.platform.dto.PropertyDefinition;
 import ru.alkoleft.context.platform.dto.Signature;
 
@@ -200,6 +202,29 @@ public class ContextExporter implements Exporter {
     }
   }
 
+  private void appendTypeConstructors(BufferedWriter writer, PlatformTypeDefinition typeDef) throws IOException {
+    List<ISignature> constructors = typeDef.constructors();
+
+    writer.newLine();
+    appendLine(writer, "Constructors:");
+    if (constructors != null && !constructors.isEmpty()) {
+      for (ISignature constructor : constructors) {
+        appendLine(writer, "  ---");
+        String signatureLine = formatCompleteSignatureForConstructor(constructor, typeDef);
+        appendLine(writer, "  " + signatureLine);
+        appendIfNotNullOrEmpty(writer, "    Description: ", constructor.description());
+        appendSignatureParameterDescriptions(writer, constructor.params(), "    ");
+      }
+    } else {
+      appendLine(writer, "  (No constructors)");
+    }
+  }
+
+  private String formatCompleteSignatureForConstructor(ISignature constructor, PlatformTypeDefinition type) {
+    String paramsString = formatParametersForSignature(constructor.params());
+    return String.format("Новый %s(%s)", type.name(), paramsString);
+  }
+
   @Override
   public void writeTypes(List<Context> contexts, Path output) throws IOException {
     writeEntries(
@@ -209,6 +234,7 @@ public class ContextExporter implements Exporter {
       (writer, typeDef) -> {
         writeSnippetStart(writer, "Type: " + typeDef.name(), typeDef.description());
         appendLine(writer, "Name: " + typeDef.name());
+        appendTypeConstructors(writer, typeDef);
         appendTypeProperties(writer, typeDef.properties());
         appendTypeMethods(writer, typeDef.methods());
       }
