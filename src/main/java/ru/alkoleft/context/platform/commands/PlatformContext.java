@@ -7,9 +7,9 @@ import lombok.NoArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import picocli.CommandLine;
+import ru.alkoleft.context.platform.exporter.ContextExporter;
 import ru.alkoleft.context.platform.exporter.Exporter;
 import ru.alkoleft.context.platform.exporter.JsonExporter;
-import ru.alkoleft.context.platform.exporter.MarkdownExporter;
 import ru.alkoleft.context.platform.exporter.XmlExporter;
 
 import java.io.FileNotFoundException;
@@ -56,7 +56,7 @@ public class PlatformContext implements Runnable {
 
     Exporter exporter = switch (format.toLowerCase()) {
       case "json" -> new JsonExporter();
-      case "markdown" -> new MarkdownExporter();
+      case "markdown" -> new ContextExporter();
       case "xml" -> new XmlExporter();
       default -> throw new IllegalArgumentException("Unsupported format: " + format);
     };

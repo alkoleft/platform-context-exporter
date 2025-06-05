@@ -20,12 +20,12 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Slf4j
-public class MarkdownExporter implements Exporter {
+public class ContextExporter implements Exporter {
 
   private static final String SEPARATOR = "----------------------------------------";
   private final ExporterLogic logic;
 
-  public MarkdownExporter() {
+  public ContextExporter() {
     this.logic = new BaseExporterLogic();
   }
 
@@ -78,7 +78,7 @@ public class MarkdownExporter implements Exporter {
 
   @Override
   public void writeProperties(PlatformGlobalContext context, Path output) throws IOException {
-    Path file = output.resolve("global-properties.md");
+    Path file = output.resolve("global-properties.txt");
     writeEntries(
       file,
       "Exporting global properties to: {}",
@@ -94,7 +94,7 @@ public class MarkdownExporter implements Exporter {
 
   @Override
   public void writeMethods(PlatformGlobalContext context, Path output) throws IOException {
-    Path file = output.resolve("global-methods.md");
+    Path file = output.resolve("global-methods.txt");
     writeEntries(
       file,
       "Exporting global methods to: {}",
@@ -204,7 +204,7 @@ public class MarkdownExporter implements Exporter {
 
   @Override
   public void writeTypes(List<Context> contexts, Path output) throws IOException {
-    Path file = output.resolve("types.md");
+    Path file = output.resolve("types.txt");
     writeEntries(
       file,
       "Exporting types to: {}",
