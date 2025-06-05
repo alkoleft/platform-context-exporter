@@ -47,7 +47,7 @@ java -jar platform-context-exporter-<версия>.jar platform <путь_к_shc
 **Пример:**
 
 ```bash
-java -jar platform-context-exporter-1.0-SNAPSHOT.jar platform /path/to/onec/help/ /output/json/ --format xml
+java -jar platform-context-exporter-0.1.0.jar platform /path/to/onec/help/ /output/json/ --format xml
 ```
 
 ## Форматы вывода
