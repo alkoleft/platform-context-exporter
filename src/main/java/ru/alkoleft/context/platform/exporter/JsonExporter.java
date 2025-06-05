@@ -70,9 +70,6 @@ public class JsonExporter implements Exporter {
           try {
             generator.writeStartObject();
             generator.writeStringField("name", method.name());
-            if (method.nameEn() != null) {
-              generator.writeStringField("name_en", method.nameEn());
-            }
             if (method.description() != null) {
               generator.writeStringField("description", method.description());
             }

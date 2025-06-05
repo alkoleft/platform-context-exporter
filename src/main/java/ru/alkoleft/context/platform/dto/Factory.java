@@ -45,15 +45,10 @@ public class Factory {
 
   public MethodDefinition method(ContextMethod method) {
     List<Signature> methodSignatures = signatures(method);
-    List<ParameterDefinition> firstSignatureParams = methodSignatures.isEmpty()
-        ? Collections.emptyList()
-        : methodSignatures.get(0).params();
 
     return new MethodDefinition(
-        method.description(),
-        firstSignatureParams,
-        method.name().getName(),
-        null, // nameEn
+      method.name().getName(),
+      method.description(),
         methodSignatures,
         returnType(method)
     );

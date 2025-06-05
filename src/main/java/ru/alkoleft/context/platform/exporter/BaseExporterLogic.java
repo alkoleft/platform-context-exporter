@@ -77,15 +77,9 @@ public class BaseExporterLogic implements ExporterLogic {
           returnValue = method.returnValues().get(0).name().getName();
         }
 
-        List<ParameterDefinition> firstSignatureParams = sigs.isEmpty()
-          ? Collections.emptyList()
-          : sigs.get(0).params();
-
         return new MethodDefinition(
-          method.description(),
-          firstSignatureParams,
           method.name().getName(),
-          method.name().getAlias(),
+          method.description(),
           sigs,
           returnValue
         );
