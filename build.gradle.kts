@@ -65,7 +65,6 @@ dependencies {
     testImplementation(platform("org.junit:junit-bom:5.11.4"))
     testImplementation("org.junit.jupiter:junit-jupiter")
     testImplementation("org.assertj:assertj-core:3.8.0")
-
 }
 
 tasks.test {
@@ -83,7 +82,7 @@ tasks.jar {
 
 tasks.bootJar {
     manifest {
-        mainClass = "ru.alkoleft.context.App"
+        mainClass = "ru.alkoleft.context.platform.Main"
     }
 }
 
