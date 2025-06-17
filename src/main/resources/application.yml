@@ -1,0 +1,113 @@
+spring:
+  application:
+    name: bsl-context-exporter
+  cache:
+    type: simple
+  profiles:
+    active: development
+
+# Настройки платформы 1С
+platform:
+  context:
+    # Путь к каталогу с файлами платформы (содержащий shcntx_ru.hbk)
+    # Можно переопределить через переменную окружения PLATFORM_CONTEXT_PATH
+    path: ${PLATFORM_CONTEXT_PATH:}
+
+# Настройки MCP сервера
+mcp:
+  server:
+    port: 8080
+    host: localhost
+
+# Настройки логирования
+logging:
+  level:
+    ru.alkoleft.context.platform: INFO
+    com.github._1c_syntax.bsl: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# Настройки кэширования
+cache:
+  api-search:
+    expire-after-write: 1h
+  api-info:
+    expire-after-write: 1h
+
+---
+# Профиль разработки
+spring:
+  config:
+    activate:
+      on-profile: development
+logging:
+  level:
+    ru.alkoleft.context.platform: DEBUG
+
+---
+# Профиль продакшена
+spring:
+  config:
+    activate:
+      on-profile: production
+logging:
+  level:
+    root: WARN
+    ru.alkoleft.context.platform: INFO
+
+# MCP Server конфигурация
+ai:
+  mcp:
+    server:
+      name: "1С Предприятие API"
+      version: "1.0.0"
+      transport:
+        type: stdio  # Используем stdin/stdout для CLI интеграции
+      
+      # Capabilities
+      capabilities:
+        tools:
+          list_changed: true
+        resources:
+          subscribe: true
+          list_changed: true
+      
+      # Server info
+      info:
+        name: "1С Предприятие MCP Server"
+        version: "1.0.0"
+        description: "MCP сервер для поиска по API платформы 1С Предприятие"
+
+# Кэширование
+cache:
+  caffeine:
+    spec: maximumSize=1000,expireAfterWrite=5m
+
+# Логирование
+logging:
+  level:
+    ru.alkoleft.context.platform.mcp: DEBUG
+    org.springframework.ai.mcp: INFO
+    org.springframework.cache: DEBUG
+  
+  # Логи в файл, чтобы не мешать MCP протоколу через stdout
+  file:
+    name: mcp-server.log
+  
+  pattern:
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# Управление
+management:
+  endpoints:
+    enabled-by-default: false
+    
+# Отключаем веб-сервер (используем только STDIO)
+server:
+  port: -1
+
+# Отключаем автоконфигурацию веб-слоя
+spring.autoconfigure.exclude:
+  - org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration
+  - org.springframework.boot.autoconfigure.web.servlet.DispatcherServletAutoConfiguration 
