@@ -1,11 +1,15 @@
 package ru.alkoleft.context.platform.dto;
 
-import java.util.List;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 
-public record BaseTypeDefinition(
-  String name,
-  String description,
-  List<MethodDefinition> methods,
-  List<PropertyDefinition> properties
-) {
+/**
+ * Заглушка для демонстрации работы MCP сервера
+ * Представляет базовое определение типа платформы 1С
+ */
+public record BaseTypeDefinition(String name, String description, String type) {
+    @Override
+    public String toString() {
+        return "BaseTypeDefinition{name='" + name + "', type='" + type + "'}";
+    }
 }

@@ -21,15 +21,11 @@ import org.springframework.context.annotation.ComponentScan;
 public class McpServerApplication {
     
     public static void main(String[] args) {
-        // Настройка логирования для MCP режима (в файл, не в stdout)
-        System.setProperty("logging.file.name", "mcp-server.log");
-        System.setProperty("logging.level.org.springframework.ai.mcp", "DEBUG");
-        
         SpringApplication.run(McpServerApplication.class, args);
     }
 
     @Bean
-    public ToolCallbackProvider weatherTools(PlatformApiSearchService searchService) {
+    public ToolCallbackProvider platformTools(PlatformApiSearchService searchService) {
         return MethodToolCallbackProvider.builder()
                 .toolObjects(searchService)
                 .build();

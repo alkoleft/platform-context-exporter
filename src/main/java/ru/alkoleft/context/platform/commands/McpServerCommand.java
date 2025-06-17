@@ -1,5 +1,6 @@
 package ru.alkoleft.context.platform.commands;
 
+import lombok.extern.slf4j.Slf4j;
 import picocli.CommandLine;
 import ru.alkoleft.context.platform.mcp.McpServerApplication;
 
@@ -8,6 +9,7 @@ import java.util.concurrent.Callable;
 /**
  * CLI команда для запуска MCP сервера платформы 1С Предприятие
  */
+@Slf4j
 @CommandLine.Command(
         name = "mcp-server",
         description = "Запускает MCP сервер для API платформы 1С Предприятие",
@@ -32,7 +34,7 @@ public class McpServerCommand implements Callable<Integer> {
     public Integer call() throws Exception {
         try {
             // Настройка системных свойств для Spring Boot
-            System.setProperty("platform.path", platformPath);
+            System.setProperty("platform.context.path", platformPath);
             
             if (verbose) {
                 System.setProperty("logging.level.ru.alkoleft.context.platform.mcp", "DEBUG");
@@ -42,11 +44,11 @@ public class McpServerCommand implements Callable<Integer> {
             // Настройка логирования для MCP режима
             configureLoggingForMcp();
             
-            // Информационное сообщение в stderr (не мешает MCP протоколу)
-            System.err.println("Запуск MCP сервера для API платформы 1С Предприятие...");
-            System.err.println("Путь к платформе: " + platformPath);
-            System.err.println("Логи записываются в: mcp-server.log");
-            System.err.println("Готов к приему MCP команд через stdin/stdout");
+            // Логирование запуска сервера
+            log.debug("Запуск MCP сервера для API платформы 1С Предприятие");
+            log.debug("Путь к платформе: {}", platformPath);
+            log.debug("Логи записываются в: mcp-server.log");
+            log.debug("Готов к приему MCP команд через stdin/stdout");
             
             // Запуск Spring Boot приложения для MCP сервера
             McpServerApplication.main(new String[]{});
@@ -54,9 +56,9 @@ public class McpServerCommand implements Callable<Integer> {
             return 0;
             
         } catch (Exception e) {
-            System.err.println("❌ Ошибка запуска MCP сервера: " + e.getMessage());
+            log.error("❌ Ошибка запуска MCP сервера: {}", e.getMessage(), e);
             if (verbose) {
-                e.printStackTrace();
+                log.debug("Подробная информация об ошибке:", e);
             }
             return 1;
         }
@@ -74,7 +76,7 @@ public class McpServerCommand implements Callable<Integer> {
         System.setProperty("logging.pattern.console", "");
         
         // Настройка логирования в файл
-        System.setProperty("logging.file.name", "mcp-server.log");
+        System.setProperty("logging.file.name", "/tmp/mcp-server.log");
         System.setProperty("logging.file.max-size", "10MB");
         System.setProperty("logging.file.max-history", "5");
     }

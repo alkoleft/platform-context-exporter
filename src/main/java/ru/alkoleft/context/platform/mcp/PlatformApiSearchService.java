@@ -45,7 +45,9 @@ public class PlatformApiSearchService {
      */
     @Tool(name = "search", description = "Поиск по API платформы 1С Предприятие")
     @Cacheable("api-search")
-    public String search(String query, String type, int limit) {
+    public String search(String query, String type, Integer limit) {
+        // Устанавливаем значение по умолчанию для limit
+        int effectiveLimit = (limit != null) ? limit : 10;
         if (query == null || query.trim().isEmpty()) {
             return "❌ **Ошибка:** Запрос не может быть пустым";
         }
@@ -66,7 +68,7 @@ public class PlatformApiSearchService {
         // Поиск с ранжированием
         List<SearchResult> rankedResults = performSearch(filteredResults, normalizedQuery)
                 .stream()
-                .limit(Math.min(limit, 50)) // Максимум 50 результатов
+                .limit(Math.min(effectiveLimit, 50)) // Максимум 50 результатов
                 .collect(Collectors.toList());
         
         // Форматирование результатов
