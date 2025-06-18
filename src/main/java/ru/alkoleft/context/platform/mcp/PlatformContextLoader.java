@@ -61,7 +61,7 @@ public class PlatformContextLoader {
     private Path findContextFile(Path path) throws Exception {
         try (var walk = Files.walk(path)) {
             return walk.filter(p -> p.toFile().isFile())
-                .filter(p -> p.toString().endsWith(CONTEXT_FILE_NAME))
+                .filter(p -> p.getFileName().toString().equals(CONTEXT_FILE_NAME))
                 .findAny()
                 .orElse(null);
         }

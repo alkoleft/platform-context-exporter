@@ -70,7 +70,13 @@ dependencies {
     // Reactor Core для Spring AI MCP
     implementation("io.projectreactor:reactor-core:3.6.11")
 
+    // ANTLR - принудительное управление версиями для исправления несоответствия
+    implementation("org.antlr:antlr4-runtime:4.9.3")
+    implementation("org.antlr:antlr4:4.9.3")
+
     // Tests
+    testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     testImplementation("org.slf4j", "slf4j-log4j12", "1.7.30")
     testImplementation(platform("org.junit:junit-bom:5.11.4"))
     testImplementation("org.junit.jupiter:junit-jupiter")

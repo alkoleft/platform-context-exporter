@@ -5,6 +5,7 @@ import ru.alkoleft.context.platform.dto.BaseTypeDefinition;
 import ru.alkoleft.context.platform.dto.MethodDefinition;
 import ru.alkoleft.context.platform.dto.PropertyDefinition;
 import ru.alkoleft.context.platform.mcp.dto.SearchResult;
+import ru.alkoleft.context.platform.mcp.dto.SearchResultType;
 
 import java.util.List;
 
@@ -197,11 +198,11 @@ public class MarkdownFormatterService {
     /**
      * Получение иконки для типа
      */
-    private String getTypeIcon(String type) {
-        switch (type.toLowerCase()) {
-            case "method": return "🔧";
-            case "property": return "📋";
-            case "type": return "📦";
+    private String getTypeIcon(SearchResultType type) {
+        switch (type) {
+            case method: return "🔧";
+            case property: return "📋";
+            case type: return "📦";
             default: return "❓";
         }
     }
@@ -209,11 +210,11 @@ public class MarkdownFormatterService {
     /**
      * Получение описания типа
      */
-    private String getTypeDescription(String type) {
-        switch (type.toLowerCase()) {
-            case "method": return "Глобальный метод";
-            case "property": return "Глобальное свойство";
-            case "type": return "Тип данных";
+    private String getTypeDescription(SearchResultType type) {
+        switch (type) {
+            case method: return "Глобальный метод";
+            case property: return "Глобальное свойство";
+            case type: return "Тип данных";
             default: return "Неизвестный тип";
         }
     }
@@ -221,11 +222,11 @@ public class MarkdownFormatterService {
     /**
      * Получение бейджа типа
      */
-    private String getTypeBadge(String type) {
-        switch (type.toLowerCase()) {
-            case "method": return "Методы";
-            case "property": return "Свойства";
-            case "type": return "Типы";
+    private String getTypeBadge(SearchResultType type) {
+        switch (type) {
+            case method: return "Методы";
+            case property: return "Свойства";
+            case type: return "Типы";
             default: return "Разное";
         }
     }

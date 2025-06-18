@@ -11,6 +11,7 @@ import ru.alkoleft.context.platform.dto.PlatformTypeDefinition;
 import ru.alkoleft.context.platform.dto.PropertyDefinition;
 import ru.alkoleft.context.platform.exporter.BaseExporterLogic;
 import ru.alkoleft.context.platform.mcp.dto.SearchResult;
+import ru.alkoleft.context.platform.mcp.dto.SearchResultType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -91,11 +92,12 @@ public class PlatformApiSearchService {
             log.error("Ошибка при инициализации индекса поиска", e);
             return "❌ **Ошибка:** " + e.getMessage();
         }
-        
+
+        var normalizedType = SearchResultType.valueOf(type.trim().toLowerCase());
         // Точный поиск по имени
         Optional<SearchResult> result = searchIndex.stream()
                 .filter(item -> item.getName().equalsIgnoreCase(name.trim()))
-                .filter(item -> type == null || type.isEmpty() || item.getType().equalsIgnoreCase(type))
+                .filter(item -> type.isEmpty() || item.getType().equals(normalizedType))
                 .findFirst();
         
         if (result.isPresent()) {
@@ -141,7 +143,7 @@ public class PlatformApiSearchService {
                 exporterLogic.extractMethods(globalContext).forEach(methodDef -> {
                     searchIndex.add(new SearchResult(
                             methodDef.name(),
-                            "method",
+                            SearchResultType.method,
                             buildMethodSignature(methodDef),
                             methodDef.description() != null ? methodDef.description() : "",
                             methodDef
@@ -151,7 +153,7 @@ public class PlatformApiSearchService {
                 exporterLogic.extractProperties(globalContext).forEach(propertyDef -> {
                     searchIndex.add(new SearchResult(
                             propertyDef.name(),
-                            "property",
+                            SearchResultType.property,
                             propertyDef.type(),
                             propertyDef.description() != null ? propertyDef.description() : "",
                             propertyDef
@@ -165,7 +167,7 @@ public class PlatformApiSearchService {
                 exporterLogic.extractTypes(List.copyOf(contexts)).forEach(typeDefinition -> {
                     searchIndex.add(new SearchResult(
                             typeDefinition.name(),
-                            "type",
+                            SearchResultType.type,
                             "Тип данных платформы",
                             typeDefinition.description() != null ? typeDefinition.description() : "",
                             typeDefinition
@@ -175,50 +177,9 @@ public class PlatformApiSearchService {
             
         } catch (Exception e) {
             log.warn("Не удалось загрузить данные из контекста платформы, используем фикстуры", e);
-            initializeWithFixtures();
         }
     }
-    
-    /**
-     * Резервная инициализация с фикстурами (если не удалось загрузить реальные данные)
-     */
-    private void initializeWithFixtures() {
-        searchIndex = new ArrayList<>();
-        
-        // Добавляем фикстуры как fallback
-        for (MethodDefinition method : BaseExporterLogic.getGlobalMethods()) {
-            searchIndex.add(new SearchResult(
-                    method.name(),
-                    "method",
-                    buildMethodSignature(method),
-                    method.description() != null ? method.description() : "",
-                    method
-            ));
-        }
-        
-        for (PropertyDefinition property : BaseExporterLogic.getGlobalProperties()) {
-            searchIndex.add(new SearchResult(
-                    property.name(),
-                    "property", 
-                    property.type(),
-                    property.description() != null ? property.description() : "",
-                    property
-            ));
-        }
-        
-        for (BaseTypeDefinition typeDefinition : BaseExporterLogic.getTypes()) {
-            searchIndex.add(new SearchResult(
-                    typeDefinition.name(),
-                    "type",
-                    "Тип данных",
-                    typeDefinition.description() != null ? typeDefinition.description() : "",
-                    typeDefinition
-            ));
-        }
-        
-        log.info("Инициализация завершена с использованием фикстур. Элементов: {}", searchIndex.size());
-    }
-    
+
     /**
      * Фильтрация результатов по типу
      */
@@ -226,10 +187,10 @@ public class PlatformApiSearchService {
         if (type == null || type.trim().isEmpty()) {
             return results;
         }
-        
-        String normalizedType = type.trim().toLowerCase();
+
+        var normalizedType = SearchResultType.valueOf(type.trim().toLowerCase());
         return results.stream()
-                .filter(result -> result.getType().toLowerCase().equals(normalizedType))
+                .filter(result -> result.getType().equals(normalizedType))
                 .collect(Collectors.toList());
     }
     
