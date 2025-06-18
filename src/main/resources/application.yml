@@ -1,0 +1,84 @@
+spring:
+  profiles:
+    active: develop
+  application:
+    name: bsl-context-exporter
+  cache:
+    type: simple
+  ai:
+    mcp:
+      server:
+        # Информация о сервере
+        name: "1C Platform API Server"
+        version: "1.0.0"
+        description: "MCP сервер для поиска по API платформы 1С Предприятие"
+        type: SYNC
+        # Транспорт - используем STDIO для интеграции с MCP клиентами
+        stdio: true
+
+        # Возможности сервера
+        capabilities:
+          tools:
+            # Поддержка инструментов
+            enabled: true
+          resources:
+            # Поддержка ресурсов (отключено для простоты)
+            enabled: false
+          prompts:
+            # Поддержка промптов (отключено для простоты)
+            enabled: false
+  # Отключаем баннер Spring Boot для чистого STDIO вывода
+  main:
+    banner-mode: off
+    web-application-type: none
+  # Отключаем автоконфигурацию веб-слоя
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration
+      - org.springframework.boot.autoconfigure.web.servlet.DispatcherServletAutoConfiguration
+
+# Настройки платформы 1С
+platform:
+  context:
+    # Путь к каталогу с файлами платформы (содержащий shcntx_ru.hbk)
+    # Можно переопределить через переменную окружения PLATFORM_CONTEXT_PATH
+    path: ${PLATFORM_CONTEXT_PATH:}
+
+# Настройки MCP сервера
+mcp:
+  server:
+    port: 8080
+    host: localhost
+
+# Отключаем веб-сервер (используем только STDIO)
+server:
+  port: -1
+
+# Настройки логирования
+logging:
+  level:
+    ru.alkoleft.context.platform: INFO
+    ru.alkoleft.context.platform.mcp: DEBUG
+    com.github._1c_syntax.bsl: WARN
+    org.springframework.ai.mcp: INFO
+    org.springframework.cache: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  # Логи в файл, чтобы не мешать MCP протоколу через stdout
+  file:
+    name: mcp-server.log
+
+# Настройки кэширования
+cache:
+  api-search:
+    expire-after-write: 1h
+  api-info:
+    expire-after-write: 1h
+  caffeine:
+    spec: maximumSize=1000,expireAfterWrite=5m
+
+# Управление
+management:
+  endpoints:
+    enabled-by-default: false

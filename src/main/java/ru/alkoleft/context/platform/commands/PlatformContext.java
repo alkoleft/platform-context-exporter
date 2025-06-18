@@ -37,9 +37,9 @@ public class PlatformContext implements Runnable {
     var fileName = "shcntx_ru.hbk";
     try (var walk = Files.walk(path)) {
       syntaxContextFile = walk.filter(p -> p.toFile().isFile())
-        .filter(p -> p.toString().endsWith(fileName))
-        .findAny()
-        .orElse(null);
+              .filter(p -> p.toString().endsWith(fileName))
+              .findAny()
+              .orElse(null);
     }
 
     if (syntaxContextFile == null) {
