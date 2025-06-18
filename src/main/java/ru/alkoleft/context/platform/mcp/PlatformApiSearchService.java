@@ -6,17 +6,21 @@ import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import ru.alkoleft.context.platform.dto.MethodDefinition;
+import ru.alkoleft.context.platform.dto.PlatformTypeDefinition;
+import ru.alkoleft.context.platform.dto.PropertyDefinition;
 import ru.alkoleft.context.platform.exporter.BaseExporterLogic;
-import ru.alkoleft.context.platform.mcp.dto.SearchResult;
-import ru.alkoleft.context.platform.mcp.dto.SearchResultType;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
- * Сервис поиска по API платформы 1С Предприятие через MCP протокол
+ * Улучшенный сервис поиска по API платформы 1С Предприятие через MCP протокол
+ * Использует три отдельных индекса для оптимальной производительности
  */
 @Slf4j
 @Service
@@ -26,8 +30,17 @@ public class PlatformApiSearchService {
     private final MarkdownFormatterService formatter;
     private final BaseExporterLogic exporterLogic;
 
-    // Индекс для быстрого поиска
-    private List<SearchResult> searchIndex;
+    // Алиасы типов для удобства LLM
+    private static final Map<String, String> TYPE_ALIASES = Map.of(
+        "object", "type",
+        "class", "type", 
+        "datatype", "type"
+    );
+
+    // Три отдельных индекса для оптимальной производительности
+    private Map<String, MethodDefinition> globalMethodsIndex;
+    private Map<String, PropertyDefinition> globalPropertiesIndex;
+    private Map<String, PlatformTypeDefinition> typesIndex;
     private volatile boolean indexInitialized = false;
 
     public PlatformApiSearchService(PlatformContextService contextService,
@@ -40,8 +53,22 @@ public class PlatformApiSearchService {
 
     /**
      * Поиск по API платформы 1С Предприятие
+     * 
+     * @param query Поисковый запрос. Используйте конкретные термины из 1С:
+     *              - Для поиска методов: "НайтиПоСсылке", "ВыполнитьОбработку", "ПолучитьДанные"
+     *              - Для поиска типов: "Справочник", "Документ", "Обработка", "Отчет" 
+     *              - Для поиска свойств: "Ссылка", "Код", "Наименование", "Дата"
+     *              - Для общего поиска: "параметры", "методы", "свойства", "конструкторы"
+     *              Примеры хороших запросов: "методы работы со справочниками", "получение данных из базы", "работа с документами"
+     * @param type Тип искомого элемента API (опционально):
+     *             - "method" - только методы и функции
+     *             - "property" - только свойства и реквизиты  
+     *             - "type" - только типы данных (справочники, документы, обработки и т.д.)
+     *             - null или пустая строка - поиск по всем типам
+     * @param limit Максимальное количество результатов (по умолчанию 10, максимум 50)
      */
-    @Tool(name = "search", description = "Поиск по API платформы 1С Предприятие")
+    @Tool(name = "search", 
+          description = "Поиск по API платформы 1С Предприятие. Используйте конкретные термины 1С для получения точных результатов.")
     @Cacheable("api-search")
     public String search(String query, String type, Integer limit) {
         // Устанавливаем значение по умолчанию для limit
@@ -53,30 +80,44 @@ public class PlatformApiSearchService {
         try {
             ensureIndexInitialized();
         } catch (Exception e) {
-            log.error("Ошибка при инициализации индекса поиска", e);
+            log.error("Ошибка при инициализации индексов поиска", e);
             return "❌ **Ошибка:** " + e.getMessage();
         }
 
         // Нормализация запроса
         String normalizedQuery = query.trim().toLowerCase();
-
-        // Фильтрация по типу
-        List<SearchResult> filteredResults = filterByType(searchIndex, type);
-
-        // Поиск с ранжированием
-        List<SearchResult> rankedResults = performSearch(filteredResults, normalizedQuery)
-                .stream()
-                .limit(Math.min(effectiveLimit, 50)) // Максимум 50 результатов
+        
+        // Преобразование пользовательских запросов в более точные термины
+        normalizedQuery = enhanceSearchQuery(normalizedQuery);
+        
+        // Поиск в соответствующих индексах
+        List<Object> searchResults = performMultiIndexSearch(normalizedQuery, normalizeType(type));
+        
+        // Лимитирование результатов
+        List<Object> limitedResults = searchResults.stream()
+                .limit(Math.min(effectiveLimit, 50))
                 .collect(Collectors.toList());
 
-        // Форматирование результатов
-        return formatter.formatSearchResults(query, rankedResults);
+        // Форматирование результатов напрямую из DTO
+        return formatter.formatSearchResults(query, limitedResults);
     }
 
     /**
      * Получение детальной информации об API элементе
+     * 
+     * @param name Точное имя элемента API в 1С. Примеры:
+     *             - Для методов: "НайтиПоСсылке", "ВыполнитьОбработку", "ПолучитьДанные"
+     *             - Для типов: "СправочникСсылка", "ДокументОбъект", "ОбработкаОбъект"
+     *             - Для свойств: "Ссылка", "Код", "Наименование", "Дата"
+     *             Регистр важен! Используйте точные имена из 1С.
+     * @param type Уточнение типа элемента (опционально):
+     *             - "method" - если ищете метод или функцию
+     *             - "property" - если ищете свойство или реквизит
+     *             - "type" - если ищете тип данных
+     *             - null - автоматическое определение типа
      */
-    @Tool(name = "info", description = "Получение детальной информации об элементе API платформы 1С")
+    @Tool(name = "info", 
+          description = "Получение детальной информации об элементе API платформы 1С. Требует точное имя элемента.")
     @Cacheable("api-info")
     public String getInfo(String name, String type) {
         if (name == null || name.trim().isEmpty()) {
@@ -86,16 +127,15 @@ public class PlatformApiSearchService {
         try {
             ensureIndexInitialized();
         } catch (Exception e) {
-            log.error("Ошибка при инициализации индекса поиска", e);
+            log.error("Ошибка при инициализации индексов поиска", e);
             return "❌ **Ошибка:** " + e.getMessage();
         }
 
-        var normalizedType = SearchResultType.valueOf(type.trim().toLowerCase());
-        // Точный поиск по имени
-        Optional<SearchResult> result = searchIndex.stream()
-                .filter(item -> item.getName().equalsIgnoreCase(name.trim()))
-                .filter(item -> type.isEmpty() || item.getType().equals(normalizedType))
-                .findFirst();
+        String normalizedName = name.trim().toLowerCase();
+        String normalizedType = normalizeType(type);
+        
+        // Поиск точного совпадения в соответствующих индексах
+        Optional<Object> result = findExactMatch(normalizedName, normalizedType);
 
         if (result.isPresent()) {
             return formatter.formatDetailedInfo(result.get());
@@ -105,70 +145,190 @@ public class PlatformApiSearchService {
     }
 
     /**
-     * Инициализация поискового индекса из реального контекста платформы
+     * Получение информации о члене типа (методе или свойстве)
+     * 
+     * @param typeName Имя типа 1С. Примеры:
+     *                 - "СправочникСсылка" - для работы со ссылками справочников
+     *                 - "ДокументОбъект" - для работы с объектами документов  
+     *                 - "Строка" - для строковых операций
+     *                 - "Число" - для числовых операций
+     *                 - "Дата" - для работы с датами
+     * @param memberName Имя метода или свойства типа. Примеры:
+     *                   - Для справочников: "НайтиПоКоду", "НайтиПоНаименованию", "Код", "Наименование"
+     *                   - Для документов: "Записать", "Провести", "ОтменитьПроведение", "Дата", "Номер"
+     *                   - Для строк: "Длина", "ВРег", "НРег", "СокрЛП"
+     */
+    @Tool(name = "getMember", 
+          description = "Получение информации о методе или свойстве конкретного типа 1С. Используйте точные имена типов и членов.")
+    @Cacheable("api-member")
+    public String getMember(String typeName, String memberName) {
+        if (typeName == null || typeName.trim().isEmpty() || 
+            memberName == null || memberName.trim().isEmpty()) {
+            return "❌ **Ошибка:** Имя типа и имя члена не могут быть пустыми";
+        }
+
+        try {
+            ensureIndexInitialized();
+        } catch (Exception e) {
+            log.error("Ошибка при инициализации индексов поиска", e);
+            return "❌ **Ошибка:** " + e.getMessage();
+        }
+
+        String normalizedTypeName = typeName.trim().toLowerCase();
+        String normalizedMemberName = memberName.trim().toLowerCase();
+        
+        PlatformTypeDefinition type = typesIndex.get(normalizedTypeName);
+        if (type == null) {
+            return String.format("❌ **Тип не найден:** %s", typeName);
+        }
+
+        // Поиск среди методов типа
+        Optional<MethodDefinition> method = type.methods().stream()
+                .filter(m -> m.name().toLowerCase().equals(normalizedMemberName))
+                .findFirst();
+        
+        if (method.isPresent()) {
+            return formatter.formatDetailedInfo(method.get());
+        }
+
+        // Поиск среди свойств типа
+        Optional<PropertyDefinition> property = type.properties().stream()
+                .filter(p -> p.name().toLowerCase().equals(normalizedMemberName))
+                .findFirst();
+        
+        if (property.isPresent()) {
+            return formatter.formatDetailedInfo(property.get());
+        }
+
+        return String.format("❌ **Член не найден:** %s в типе %s", memberName, typeName);
+    }
+
+    /**
+     * Получение конструкторов типа
+     * 
+     * @param typeName Имя типа данных 1С для получения его конструкторов. Примеры:
+     *                 - "Массив" - создание массивов
+     *                 - "Структура" - создание структур данных
+     *                 - "Соответствие" - создание соответствий (словарей)
+     *                 - "ТаблицаЗначений" - создание таблиц значений
+     *                 - "СписокЗначений" - создание списков значений
+     *                 - "УниверсальнаяДата" - создание дат
+     */
+    @Tool(name = "getConstructors", 
+          description = "Получение списка конструкторов для указанного типа 1С. Показывает способы создания объектов данного типа.")
+    @Cacheable("api-constructors")
+    public String getConstructors(String typeName) {
+        if (typeName == null || typeName.trim().isEmpty()) {
+            return "❌ **Ошибка:** Имя типа не может быть пустым";
+        }
+
+        try {
+            ensureIndexInitialized();
+        } catch (Exception e) {
+            log.error("Ошибка при инициализации индексов поиска", e);
+            return "❌ **Ошибка:** " + e.getMessage();
+        }
+
+        String normalizedTypeName = typeName.trim().toLowerCase();
+        PlatformTypeDefinition type = typesIndex.get(normalizedTypeName);
+        
+        if (type == null) {
+            return String.format("❌ **Тип не найден:** %s", typeName);
+        }
+
+        if (type.constructors().isEmpty()) {
+            return String.format("❌ **Конструкторы не найдены** для типа %s", typeName);
+        }
+
+        return formatter.formatConstructors(type.constructors(), typeName);
+    }
+
+    /**
+     * Получение всех членов типа (методы + свойства)
+     * 
+     * @param typeName Имя типа 1С для получения полного списка его методов и свойств. Примеры:
+     *                 - "СправочникСсылка" - все методы и свойства ссылок справочников
+     *                 - "ДокументОбъект" - все методы и свойства объектов документов
+     *                 - "Строка" - все строковые функции и свойства
+     *                 - "ТаблицаЗначений" - методы работы с таблицами значений
+     *                 - "Запрос" - методы построения и выполнения запросов к базе данных
+     */
+    @Tool(name = "getMembers", 
+          description = "Получение полного списка всех методов и свойств для указанного типа 1С. Полный справочник API типа.")
+    @Cacheable("api-members")
+    public String getMembers(String typeName) {
+        if (typeName == null || typeName.trim().isEmpty()) {
+            return "❌ **Ошибка:** Имя типа не может быть пустым";
+        }
+
+        try {
+            ensureIndexInitialized();
+        } catch (Exception e) {
+            log.error("Ошибка при инициализации индексов поиска", e);
+            return "❌ **Ошибка:** " + e.getMessage();
+        }
+
+        String normalizedTypeName = typeName.trim().toLowerCase();
+        PlatformTypeDefinition type = typesIndex.get(normalizedTypeName);
+        
+        if (type == null) {
+            return String.format("❌ **Тип не найден:** %s", typeName);
+        }
+
+        return formatter.formatTypeMembers(type);
+    }
+
+    /**
+     * Инициализация поисковых индексов из реального контекста платформы
      */
     private void ensureIndexInitialized() {
-        if (indexInitialized && searchIndex != null && !searchIndex.isEmpty()) {
+        if (indexInitialized && globalMethodsIndex != null && !globalMethodsIndex.isEmpty()) {
             return;
         }
 
         synchronized (this) {
-            if (indexInitialized && searchIndex != null && !searchIndex.isEmpty()) {
+            if (indexInitialized && globalMethodsIndex != null && !globalMethodsIndex.isEmpty()) {
                 return;
             }
 
-            log.info("Инициализация поискового индекса из контекста платформы");
-            initializeSearchIndex();
+            log.info("Инициализация поисковых индексов из контекста платформы");
+            initializeSearchIndexes();
             indexInitialized = true;
-            log.info("Поисковый индекс инициализирован. Элементов: {}", searchIndex.size());
+            log.info("Поисковые индексы инициализированы. Методов: {}, Свойств: {}, Типов: {}", 
+                    globalMethodsIndex.size(), 
+                    globalPropertiesIndex.size(), 
+                    typesIndex.size());
         }
     }
 
     /**
-     * Инициализация поискового индекса
+     * Инициализация трех отдельных индексов
      */
-    private void initializeSearchIndex() {
-        searchIndex = new ArrayList<>();
+    private void initializeSearchIndexes() {
+        globalMethodsIndex = new HashMap<>();
+        globalPropertiesIndex = new HashMap<>();
+        typesIndex = new HashMap<>();
 
         try {
             ContextProvider provider = contextService.getContextProvider();
 
-            // Добавляем глобальные методы и свойства из реального контекста
+            // Заполняем индекс глобальных методов и свойств
             var globalContext = provider.getGlobalContext();
             if (globalContext != null) {
-                // Используем exporterLogic для извлечения методов и свойств глобального контекста
                 exporterLogic.extractMethods(globalContext).forEach(methodDef -> {
-                    searchIndex.add(new SearchResult(
-                            methodDef.name(),
-                            SearchResultType.method,
-                            buildMethodSignature(methodDef),
-                            methodDef.description() != null ? methodDef.description() : "",
-                            methodDef
-                    ));
+                    globalMethodsIndex.put(methodDef.name().toLowerCase(), methodDef);
                 });
 
                 exporterLogic.extractProperties(globalContext).forEach(propertyDef -> {
-                    searchIndex.add(new SearchResult(
-                            propertyDef.name(),
-                            SearchResultType.property,
-                            propertyDef.type(),
-                            propertyDef.description() != null ? propertyDef.description() : "",
-                            propertyDef
-                    ));
+                    globalPropertiesIndex.put(propertyDef.name().toLowerCase(), propertyDef);
                 });
             }
 
-            // Добавляем типы данных из реального контекста
+            // Заполняем индекс типов данных
             var contexts = provider.getContexts();
             if (contexts != null) {
                 exporterLogic.extractTypes(List.copyOf(contexts)).forEach(typeDefinition -> {
-                    searchIndex.add(new SearchResult(
-                            typeDefinition.name(),
-                            SearchResultType.type,
-                            "Тип данных платформы",
-                            typeDefinition.description() != null ? typeDefinition.description() : "",
-                            typeDefinition
-                    ));
+                    typesIndex.put(typeDefinition.name().toLowerCase(), typeDefinition);
                 });
             }
 
@@ -178,121 +338,172 @@ public class PlatformApiSearchService {
     }
 
     /**
-     * Фильтрация результатов по типу
+     * Преобразование пользовательских запросов в более точные поисковые термины
      */
-    private List<SearchResult> filterByType(List<SearchResult> results, String type) {
-        if (type == null || type.trim().isEmpty()) {
-            return results;
-        }
+    private String enhanceSearchQuery(String originalQuery) {
+        // Словарь для преобразования пользовательских запросов в термины 1С
+        Map<String, String> queryEnhancements = new HashMap<>();
+        queryEnhancements.put("параметры запроса", "запрос параметр установить");
+        queryEnhancements.put("получение параметров запроса", "запрос получить параметр установитьпараметр");
+        queryEnhancements.put("работа с запросами", "запрос выполнить установить");
+        queryEnhancements.put("параметры", "параметр установить получить");
+        queryEnhancements.put("работа со справочниками", "справочник найти создать");
+        queryEnhancements.put("создание документов", "документ создать записать");
+        queryEnhancements.put("получение данных", "получить данные найти выбрать");
+        queryEnhancements.put("работа с базой", "запрос выполнить база данных");
+        queryEnhancements.put("методы строк", "строка врег нрег сокрлп длина");
+        queryEnhancements.put("работа с датами", "дата формат текущая добавить");
+        queryEnhancements.put("массивы", "массив добавить найти количество");
+        queryEnhancements.put("таблицы значений", "таблицазначений добавить найти колонка строка");
 
-        var normalizedType = SearchResultType.valueOf(type.trim().toLowerCase());
-        return results.stream()
-                .filter(result -> result.getType().equals(normalizedType))
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * Выполнение поиска с ранжированием
-     */
-    private List<SearchResult> performSearch(List<SearchResult> candidates, String query) {
-        return candidates.stream()
-                .map(result -> {
-                    int score = calculateScore(result, query);
-                    result.setScore(score);
-                    return result;
-                })
-                .filter(result -> result.getScore() > 0)
-                .sorted((a, b) -> Integer.compare(b.getScore(), a.getScore()))
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * Вычисление релевантности результата
-     */
-    private int calculateScore(SearchResult result, String query) {
-        String name = result.getName().toLowerCase();
-        String signature = result.getSignature().toLowerCase();
-        String description = result.getDescription().toLowerCase();
-
-        // Точное совпадение имени - максимальный балл
-        if (name.equals(query)) {
-            return 100;
-        }
-
-        // Имя начинается с запроса
-        if (name.startsWith(query)) {
-            return 80;
-        }
-
-        // Имя содержит запрос
-        if (name.contains(query)) {
-            return 60;
-        }
-
-        // Сигнатура содержит запрос
-        if (signature.contains(query)) {
-            return 40;
-        }
-
-        // Описание содержит запрос
-        if (description.contains(query)) {
-            return 20;
-        }
-
-        // Fuzzy matching для имени
-        int editDistance = levenshteinDistance(name, query);
-        if (editDistance <= Math.max(1, query.length() / 3)) {
-            return Math.max(0, 50 - editDistance * 10);
-        }
-
-        return 0;
-    }
-
-    /**
-     * Простая реализация расстояния Левенштейна
-     */
-    private int levenshteinDistance(String s1, String s2) {
-        int[][] dp = new int[s1.length() + 1][s2.length() + 1];
-
-        for (int i = 0; i <= s1.length(); i++) {
-            dp[i][0] = i;
-        }
-        for (int j = 0; j <= s2.length(); j++) {
-            dp[0][j] = j;
-        }
-
-        for (int i = 1; i <= s1.length(); i++) {
-            for (int j = 1; j <= s2.length(); j++) {
-                if (s1.charAt(i - 1) == s2.charAt(j - 1)) {
-                    dp[i][j] = dp[i - 1][j - 1];
-                } else {
-                    dp[i][j] = 1 + Math.min(dp[i - 1][j], Math.min(dp[i][j - 1], dp[i - 1][j - 1]));
-                }
+        String enhanced = originalQuery;
+        
+        // Попытка найти точное соответствие
+        for (Map.Entry<String, String> entry : queryEnhancements.entrySet()) {
+            if (enhanced.contains(entry.getKey())) {
+                enhanced = enhanced.replace(entry.getKey(), entry.getValue());
+                break;
             }
         }
-
-        return dp[s1.length()][s2.length()];
+        
+        // Дополнительные улучшения для общих терминов
+        enhanced = enhanced
+            .replace("как получить", "получить")
+            .replace("как создать", "создать")
+            .replace("как найти", "найти")
+            .replace("способы", "метод")
+            .replace("функции", "метод")
+            .replace("свойства", "свойство")
+            .replace(" api", "")
+            .replace("платформы", "")
+            .replace("1с", "");
+            
+        return enhanced.trim();
     }
 
     /**
-     * Построение сигнатуры метода
+     * Нормализация типа с учетом алиасов
      */
-    private String buildMethodSignature(MethodDefinition method) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(method.name()).append("(");
-
-        if (method.signature() != null) {
-            sb.append(method.signature().stream()
-                    .map(param -> param.name() + ": " + param.getType())
-                    .collect(Collectors.joining(", ")));
+    private String normalizeType(String type) {
+        if (type == null || type.trim().isEmpty()) {
+            return null;
         }
-
-        sb.append(")");
-
-        if (method.getReturnTypeDefinition() != null) {
-            sb.append(": ").append(method.getReturnTypeDefinition().getType());
-        }
-
-        return sb.toString();
+        
+        String normalized = type.trim().toLowerCase();
+        return TYPE_ALIASES.getOrDefault(normalized, normalized);
     }
-} 
+
+    /**
+     * Поиск по нескольким индексам с возвращением DTO объектов
+     */
+    private List<Object> performMultiIndexSearch(String query, String type) {
+        List<Object> results = new ArrayList<>();
+        
+        // Определяем в каких индексах искать
+        boolean searchMethods = type == null || type.equals("method");
+        boolean searchProperties = type == null || type.equals("property");
+        boolean searchTypes = type == null || type.equals("type");
+        
+        // Поиск в глобальных методах
+        if (searchMethods) {
+            globalMethodsIndex.entrySet().stream()
+                    .filter(entry -> entry.getKey().contains(query))
+                    .map(Map.Entry::getValue)
+                    .forEach(results::add);
+        }
+        
+        // Поиск в глобальных свойствах
+        if (searchProperties) {
+            globalPropertiesIndex.entrySet().stream()
+                    .filter(entry -> entry.getKey().contains(query))
+                    .map(Map.Entry::getValue)
+                    .forEach(results::add);
+        }
+        
+        // Поиск в типах данных
+        if (searchTypes) {
+            typesIndex.entrySet().stream()
+                    .filter(entry -> entry.getKey().contains(query))
+                    .map(Map.Entry::getValue)
+                    .forEach(results::add);
+        }
+        
+        // Поиск в методах и свойствах типов (если тип не указан)
+        if (type == null) {
+            for (PlatformTypeDefinition typeDefinition : typesIndex.values()) {
+                // Методы типов
+                typeDefinition.methods().stream()
+                        .filter(method -> method.name().toLowerCase().contains(query))
+                        .forEach(results::add);
+                
+                // Свойства типов  
+                typeDefinition.properties().stream()
+                        .filter(property -> property.name().toLowerCase().contains(query))
+                        .forEach(results::add);
+            }
+        }
+        
+        // Сортировка по релевантности (точные совпадения в начале)
+        return results.stream()
+                .sorted((a, b) -> {
+                    String nameA = getObjectName(a).toLowerCase();
+                    String nameB = getObjectName(b).toLowerCase();
+                    
+                    boolean exactA = nameA.equals(query);
+                    boolean exactB = nameB.equals(query);
+                    
+                    if (exactA && !exactB) return -1;
+                    if (!exactA && exactB) return 1;
+                    
+                    boolean startsA = nameA.startsWith(query);
+                    boolean startsB = nameB.startsWith(query);
+                    
+                    if (startsA && !startsB) return -1;
+                    if (!startsA && startsB) return 1;
+                    
+                    return nameA.compareTo(nameB);
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Поиск точного совпадения в соответствующих индексах
+     */
+    private Optional<Object> findExactMatch(String name, String type) {
+        if (type == null) {
+            // Поиск во всех индексах
+            return Stream.of(
+                    Optional.ofNullable(globalMethodsIndex.get(name)).map(o -> (Object) o),
+                    Optional.ofNullable(globalPropertiesIndex.get(name)).map(o -> (Object) o),
+                    Optional.ofNullable(typesIndex.get(name)).map(o -> (Object) o)
+            ).filter(Optional::isPresent)
+             .map(Optional::get)
+             .findFirst();
+        }
+        
+        switch (type) {
+            case "method":
+                return Optional.ofNullable(globalMethodsIndex.get(name)).map(o -> (Object) o);
+            case "property":
+                return Optional.ofNullable(globalPropertiesIndex.get(name)).map(o -> (Object) o);
+            case "type":
+                return Optional.ofNullable(typesIndex.get(name)).map(o -> (Object) o);
+            default:
+                return Optional.empty();
+        }
+    }
+
+    /**
+     * Получение имени объекта независимо от его типа
+     */
+    private String getObjectName(Object obj) {
+        if (obj instanceof MethodDefinition) {
+            return ((MethodDefinition) obj).name();
+        } else if (obj instanceof PropertyDefinition) {
+            return ((PropertyDefinition) obj).name();
+        } else if (obj instanceof PlatformTypeDefinition) {
+            return ((PlatformTypeDefinition) obj).name();
+        }
+        return "";
+    }
+}
