@@ -9,18 +9,18 @@ public record MethodDefinition(String name, String description, List<Signature> 
 ) {
 
 
-    public TypeDefinition getReturnTypeDefinition() {
-        return new TypeDefinition(returnType, "Возвращаемое значение");
+  public TypeDefinition getReturnTypeDefinition() {
+    return new TypeDefinition(returnType, "Возвращаемое значение");
+  }
+
+  // Вспомогательный класс для типа возврата
+  public record TypeDefinition(String name, String description) {
+    public String getType() {
+      return name;
     }
 
-    // Вспомогательный класс для типа возврата
-    public record TypeDefinition(String name, String description) {
-        public String getType() {
-            return name;
-        }
-
-        public String getDescription() {
-            return description;
-        }
+    public String getDescription() {
+      return description;
     }
+  }
 }

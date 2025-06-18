@@ -21,13 +21,13 @@ import org.springframework.context.annotation.ComponentScan;
 public class McpServerApplication {
 
   public static void main(String[] args) {
-        SpringApplication.run(McpServerApplication.class, args);
-    }
+    SpringApplication.run(McpServerApplication.class, args);
+  }
 
-    @Bean
-    public ToolCallbackProvider platformTools(PlatformApiSearchService searchService) {
-        return MethodToolCallbackProvider.builder()
-                .toolObjects(searchService)
-                .build();
-    }
+  @Bean
+  public ToolCallbackProvider platformTools(PlatformApiSearchService searchService) {
+    return MethodToolCallbackProvider.builder()
+            .toolObjects(searchService)
+            .build();
+  }
 } 
