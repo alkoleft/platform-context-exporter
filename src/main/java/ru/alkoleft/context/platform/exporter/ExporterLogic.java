@@ -6,8 +6,8 @@ import ru.alkoleft.context.platform.dto.MethodDefinition;
 import ru.alkoleft.context.platform.dto.PlatformTypeDefinition;
 import ru.alkoleft.context.platform.dto.PropertyDefinition;
 
-import java.util.stream.Stream;
 import java.util.List;
+import java.util.stream.Stream;
 
 public interface ExporterLogic {
   Stream<PropertyDefinition> extractProperties(PlatformGlobalContext context);

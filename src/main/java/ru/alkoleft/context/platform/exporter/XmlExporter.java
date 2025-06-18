@@ -21,8 +21,8 @@ public class XmlExporter implements Exporter {
   public XmlExporter(ExporterLogic logic) {
     this.logic = logic;
     this.xmlMapper = XmlMapper.builder()
-      .defaultUseWrapper(false) // Используем false, чтобы избежать лишних оберток по умолчанию
-      .build();
+            .defaultUseWrapper(false) // Используем false, чтобы избежать лишних оберток по умолчанию
+            .build();
     // Для более красивого вывода XML
     this.xmlMapper.enable(ToXmlGenerator.Feature.WRITE_XML_DECLARATION);
     this.xmlMapper.enable(com.fasterxml.jackson.databind.SerializationFeature.INDENT_OUTPUT);

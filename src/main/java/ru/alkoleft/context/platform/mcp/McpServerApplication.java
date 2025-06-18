@@ -19,8 +19,8 @@ import org.springframework.context.annotation.ComponentScan;
         "ru.alkoleft.context.platform.dto"
 })
 public class McpServerApplication {
-    
-    public static void main(String[] args) {
+
+  public static void main(String[] args) {
         SpringApplication.run(McpServerApplication.class, args);
     }
 

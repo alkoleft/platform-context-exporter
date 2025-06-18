@@ -56,10 +56,10 @@ public class ContextExporter implements Exporter {
   }
 
   private <T> void writeEntries(
-    Path file,
-    String exportMessageFormat,
-    Supplier<Stream<T>> streamSupplier,
-    EntryWriter<T> entryWriterFunc
+          Path file,
+          String exportMessageFormat,
+          Supplier<Stream<T>> streamSupplier,
+          EntryWriter<T> entryWriterFunc
   ) throws IOException {
     log.info(exportMessageFormat, file.toAbsolutePath());
 
@@ -81,44 +81,44 @@ public class ContextExporter implements Exporter {
   @Override
   public void writeProperties(PlatformGlobalContext context, Path output) throws IOException {
     writeEntries(
-      output,
-      "Exporting global properties to: {}",
-      () -> logic.extractProperties(context),
-      (writer, property) -> {
-        writeSnippetStart(writer, "Global Property: " + property.name(), property.description());
-        appendLine(writer, "Name: " + property.name());
-        appendLine(writer, "Readonly: " + property.readonly());
-        appendIfNotNullOrEmpty(writer, "Type: ", property.type());
-      }
+            output,
+            "Exporting global properties to: {}",
+            () -> logic.extractProperties(context),
+            (writer, property) -> {
+              writeSnippetStart(writer, "Global Property: " + property.name(), property.description());
+              appendLine(writer, "Name: " + property.name());
+              appendLine(writer, "Readonly: " + property.readonly());
+              appendIfNotNullOrEmpty(writer, "Type: ", property.type());
+            }
     );
   }
 
   @Override
   public void writeMethods(PlatformGlobalContext context, Path output) throws IOException {
     writeEntries(
-      output,
-      "Exporting global methods to: {}",
-      () -> logic.extractMethods(context),
-      (writer, method) -> {
-        writeSnippetStart(writer, "Global Method: " + method.name(), method.description());
-        appendLine(writer, "Name: " + method.name());
-        writer.newLine();
-        appendLine(writer, "Signatures:");
+            output,
+            "Exporting global methods to: {}",
+            () -> logic.extractMethods(context),
+            (writer, method) -> {
+              writeSnippetStart(writer, "Global Method: " + method.name(), method.description());
+              appendLine(writer, "Name: " + method.name());
+              writer.newLine();
+              appendLine(writer, "Signatures:");
 
-        if (method.signature() != null && !method.signature().isEmpty()) {
-          for (var sig : method.signature()) {
-            appendLine(writer, "  ---");
-            String signatureLine = formatCompleteSignature(method, sig);
-            appendLine(writer, "  " + signatureLine);
-            appendIfNotNullOrEmpty(writer, "    Description: ", sig.description());
-            appendSignatureParameterDescriptions(writer, sig.params(), "    ");
-          }
-        } else {
-          String returnTypeString = (method.returnType() != null && !method.returnType().isEmpty()) ? ":" + method.returnType() : "";
-          appendLine(writer, String.format("  %s()%s", method.name(), returnTypeString));
-          appendLine(writer, "    (No specific parameter details provided for this general signature)");
-        }
-      }
+              if (method.signature() != null && !method.signature().isEmpty()) {
+                for (var sig : method.signature()) {
+                  appendLine(writer, "  ---");
+                  String signatureLine = formatCompleteSignature(method, sig);
+                  appendLine(writer, "  " + signatureLine);
+                  appendIfNotNullOrEmpty(writer, "    Description: ", sig.description());
+                  appendSignatureParameterDescriptions(writer, sig.params(), "    ");
+                }
+              } else {
+                String returnTypeString = (method.returnType() != null && !method.returnType().isEmpty()) ? ":" + method.returnType() : "";
+                appendLine(writer, String.format("  %s()%s", method.name(), returnTypeString));
+                appendLine(writer, "    (No specific parameter details provided for this general signature)");
+              }
+            }
     );
   }
 
@@ -143,14 +143,14 @@ public class ContextExporter implements Exporter {
 
   private String formatParametersForSignature(List<ParameterDefinition> params) {
     if (params == null || params.isEmpty()) {
-        return "";
+      return "";
     }
     return params.stream()
-        .map(p -> {
-            String paramType = (p.type() != null && !p.type().isEmpty()) ? p.type() : "any";
-            return p.name() + ":" + paramType;
-        })
-        .collect(Collectors.joining(", "));
+            .map(p -> {
+              String paramType = (p.type() != null && !p.type().isEmpty()) ? p.type() : "any";
+              return p.name() + ":" + paramType;
+            })
+            .collect(Collectors.joining(", "));
   }
 
   private String formatCompleteSignature(MethodDefinition method, Signature sig) {
@@ -228,16 +228,16 @@ public class ContextExporter implements Exporter {
   @Override
   public void writeTypes(List<Context> contexts, Path output) throws IOException {
     writeEntries(
-      output,
-      "Exporting types to: {}",
-      () -> logic.extractTypes(contexts),
-      (writer, typeDef) -> {
-        writeSnippetStart(writer, "Type: " + typeDef.name(), typeDef.description());
-        appendLine(writer, "Name: " + typeDef.name());
-        appendTypeConstructors(writer, typeDef);
-        appendTypeProperties(writer, typeDef.properties());
-        appendTypeMethods(writer, typeDef.methods());
-      }
+            output,
+            "Exporting types to: {}",
+            () -> logic.extractTypes(contexts),
+            (writer, typeDef) -> {
+              writeSnippetStart(writer, "Type: " + typeDef.name(), typeDef.description());
+              appendLine(writer, "Name: " + typeDef.name());
+              appendTypeConstructors(writer, typeDef);
+              appendTypeProperties(writer, typeDef.properties());
+              appendTypeMethods(writer, typeDef.methods());
+            }
     );
   }
 

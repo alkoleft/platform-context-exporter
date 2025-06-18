@@ -52,24 +52,24 @@ public class MarkdownExporter implements Exporter {
 
         try (var types = logic.extractTypes(contexts)) {
             types.sorted(Comparator.comparing(PlatformTypeDefinition::name))
-                .forEach(type -> {
-                    markdown.append("## ").append(type.name()).append("\n\n");
+                    .forEach(type -> {
+                      markdown.append("## ").append(type.name()).append("\n\n");
 
-                    if (type.constructors() != null && !type.constructors().isEmpty()) {
+                      if (type.constructors() != null && !type.constructors().isEmpty()) {
                         markdown.append("### Конструкторы\n\n");
                         type.constructors().forEach(constructor -> appendConstructorDetails(markdown, constructor, type));
-                    }
+                      }
 
-                    if (!type.properties().isEmpty()) {
+                      if (!type.properties().isEmpty()) {
                         markdown.append("### Свойства\n\n");
                         appendProperties(markdown, type.properties());
-                    }
+                      }
 
-                    if (!type.methods().isEmpty()) {
+                      if (!type.methods().isEmpty()) {
                         markdown.append("### Методы\n\n");
                         appendMethods(markdown, type.methods(), "####");
-                    }
-                });
+                      }
+                    });
         }
 
         Files.writeString(output, markdown.toString());
@@ -96,11 +96,11 @@ public class MarkdownExporter implements Exporter {
             return "";
         }
         return params.stream()
-            .map(p -> {
-                String paramType = (p.type() != null && !p.type().isEmpty()) ? p.type() : "any";
-                return p.name() + ":" + paramType;
-            })
-            .collect(Collectors.joining(", "));
+                .map(p -> {
+                  String paramType = (p.type() != null && !p.type().isEmpty()) ? p.type() : "any";
+                  return p.name() + ":" + paramType;
+                })
+                .collect(Collectors.joining(", "));
     }
 
     private String formatCompleteSignature(MethodDefinition method, Signature sig) {

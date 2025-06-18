@@ -14,7 +14,7 @@ import java.util.List;
  */
 @Service
 public class MarkdownFormatterService {
-    
+
     /**
      * Форматирование результатов поиска
      */
@@ -26,12 +26,12 @@ public class MarkdownFormatterService {
                     "- Использовать более короткий запрос\n" +
                     "- Попробовать синонимы", query);
         }
-        
+
         StringBuilder sb = new StringBuilder();
-        
+
         // Заголовок с количеством результатов
         sb.append(String.format("# 🔎 Результаты поиска: \"%s\" (%d найдено)\n\n", query, results.size()));
-        
+
         // Адаптивное форматирование в зависимости от количества результатов
         if (results.size() == 1) {
             // Один результат - детальное описание
@@ -50,7 +50,7 @@ public class MarkdownFormatterService {
             sb.append("## Топ результаты\n\n");
             sb.append("| Название | Тип | Сигнатура | Релевантность |\n");
             sb.append("|----------|-----|-----------|---------------|\n");
-            
+
             for (int i = 0; i < Math.min(5, results.size()); i++) {
                 SearchResult result = results.get(i);
                 sb.append(String.format("| **%s** | %s | `%s` | %d%% |\n",
@@ -59,34 +59,34 @@ public class MarkdownFormatterService {
                         truncateSignature(result.getSignature(), 40),
                         result.getScore()));
             }
-            
+
             if (results.size() > 5) {
                 sb.append(String.format("\n*... и еще %d результатов*\n", results.size() - 5));
             }
-            
+
             // Детальное описание первого результата
             sb.append("\n---\n\n");
             sb.append("## ⭐ Наиболее релевантный результат\n\n");
             sb.append(formatSingleResult(results.get(0)));
         }
-        
+
         return sb.toString();
     }
-    
+
     /**
      * Форматирование детальной информации об элементе
      */
     public String formatDetailedInfo(SearchResult result) {
         StringBuilder sb = new StringBuilder();
-        
+
         sb.append(String.format("# %s %s\n\n", getTypeIcon(result.getType()), result.getName()));
-        
+
         // Сигнатура
         sb.append("## Сигнатура\n");
         sb.append("```bsl\n");
         sb.append(result.getSignature()).append("\n");
         sb.append("```\n\n");
-        
+
         // Детальная информация в зависимости от типа
         if (result.getOriginalObject() instanceof MethodDefinition) {
             formatMethodDetails(sb, (MethodDefinition) result.getOriginalObject());
@@ -95,61 +95,61 @@ public class MarkdownFormatterService {
         } else if (result.getOriginalObject() instanceof BaseTypeDefinition) {
             formatTypeDetails(sb, (BaseTypeDefinition) result.getOriginalObject());
         }
-        
+
         // Описание
         if (!result.getDescription().isEmpty()) {
             sb.append("## Описание\n");
             sb.append(result.getDescription()).append("\n\n");
         }
-        
+
         return sb.toString();
     }
-    
+
     /**
      * Форматирование одного результата (детальное)
      */
     private String formatSingleResult(SearchResult result) {
         StringBuilder sb = new StringBuilder();
-        
+
         sb.append(String.format("## %s %s\n", getTypeIcon(result.getType()), result.getName()));
         sb.append("```bsl\n");
         sb.append(result.getSignature()).append("\n");
         sb.append("```\n");
-        sb.append(String.format("*%s* • **Релевантность: %d%%**\n\n", 
+        sb.append(String.format("*%s* • **Релевантность: %d%%**\n\n",
                 getTypeDescription(result.getType()), result.getScore()));
-        
+
         if (!result.getDescription().isEmpty()) {
             sb.append(result.getDescription()).append("\n");
         }
-        
+
         return sb.toString();
     }
-    
+
     /**
      * Форматирование компактного результата
      */
     private String formatCompactResult(SearchResult result, boolean isFirst) {
         StringBuilder sb = new StringBuilder();
-        
+
         String prefix = isFirst ? "## ⭐ " : "## ";
         sb.append(String.format("%s%s\n", prefix, result.getName()));
         sb.append("```bsl\n");
         sb.append(result.getSignature()).append("\n");
         sb.append("```\n");
-        
+
         String relevanceNote = isFirst ? "" : " • *Менее релевантно*";
-        sb.append(String.format("*%s* • **%s**%s\n", 
+        sb.append(String.format("*%s* • **%s**%s\n",
                 getTypeDescription(result.getType()),
                 getTypeBadge(result.getType()),
                 relevanceNote));
-        
+
         if (!result.getDescription().isEmpty()) {
             sb.append("\n").append(truncateDescription(result.getDescription(), 100)).append("\n");
         }
-        
+
         return sb.toString();
     }
-    
+
     /**
      * Форматирование деталей метода
      */
@@ -158,24 +158,24 @@ public class MarkdownFormatterService {
         if (method.signature() != null && !method.signature().isEmpty()) {
             sb.append("## Параметры\n");
             method.signature().forEach(param -> {
-                sb.append(String.format("- **%s** *(%s)* - %s\n", 
+                sb.append(String.format("- **%s** *(%s)* - %s\n",
                         param.name(),
                         param.getType(),
                         param.description() != null ? param.description() : "Описание отсутствует"));
             });
             sb.append("\n");
         }
-        
+
         // Возвращаемое значение
         if (method.getReturnTypeDefinition() != null) {
             sb.append("## Возвращаемое значение\n");
-            sb.append(String.format("**%s** - %s\n\n", 
+            sb.append(String.format("**%s** - %s\n\n",
                     method.getReturnTypeDefinition().getType(),
-                    method.getReturnTypeDefinition().getDescription() != null ? 
+                    method.getReturnTypeDefinition().getDescription() != null ?
                             method.getReturnTypeDefinition().getDescription() : "Описание отсутствует"));
         }
     }
-    
+
     /**
      * Форматирование деталей свойства
      */
@@ -185,7 +185,7 @@ public class MarkdownFormatterService {
         sb.append(String.format("- **Только чтение:** %s\n", property.readonly() ? "Да" : "Нет"));
         sb.append("\n");
     }
-    
+
     /**
      * Форматирование деталей типа
      */
@@ -194,43 +194,55 @@ public class MarkdownFormatterService {
         sb.append(String.format("- **Базовый тип:** %s\n", type.getClass().getSimpleName()));
         sb.append("\n");
     }
-    
+
     /**
      * Получение иконки для типа
      */
     private String getTypeIcon(SearchResultType type) {
         switch (type) {
-            case method: return "🔧";
-            case property: return "📋";
-            case type: return "📦";
-            default: return "❓";
+            case method:
+                return "🔧";
+            case property:
+                return "📋";
+            case type:
+                return "📦";
+            default:
+                return "❓";
         }
     }
-    
+
     /**
      * Получение описания типа
      */
     private String getTypeDescription(SearchResultType type) {
         switch (type) {
-            case method: return "Глобальный метод";
-            case property: return "Глобальное свойство";
-            case type: return "Тип данных";
-            default: return "Неизвестный тип";
+            case method:
+                return "Глобальный метод";
+            case property:
+                return "Глобальное свойство";
+            case type:
+                return "Тип данных";
+            default:
+                return "Неизвестный тип";
         }
     }
-    
+
     /**
      * Получение бейджа типа
      */
     private String getTypeBadge(SearchResultType type) {
         switch (type) {
-            case method: return "Методы";
-            case property: return "Свойства";
-            case type: return "Типы";
-            default: return "Разное";
+            case method:
+                return "Методы";
+            case property:
+                return "Свойства";
+            case type:
+                return "Типы";
+            default:
+                return "Разное";
         }
     }
-    
+
     /**
      * Обрезка сигнатуры
      */
@@ -240,7 +252,7 @@ public class MarkdownFormatterService {
         }
         return signature.substring(0, maxLength - 3) + "...";
     }
-    
+
     /**
      * Обрезка описания
      */

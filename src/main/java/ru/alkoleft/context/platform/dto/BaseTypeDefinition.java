@@ -1,8 +1,5 @@
 package ru.alkoleft.context.platform.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-
 /**
  * Заглушка для демонстрации работы MCP сервера
  * Представляет базовое определение типа платформы 1С

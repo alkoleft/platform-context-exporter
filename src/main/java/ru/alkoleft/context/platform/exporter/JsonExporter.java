@@ -6,8 +6,8 @@ import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github._1c_syntax.bsl.context.api.Context;
 import com.github._1c_syntax.bsl.context.platform.PlatformGlobalContext;
-import ru.alkoleft.context.platform.dto.PlatformTypeDefinition;
 import ru.alkoleft.context.platform.dto.MethodDefinition;
+import ru.alkoleft.context.platform.dto.PlatformTypeDefinition;
 import ru.alkoleft.context.platform.dto.PropertyDefinition;
 
 import java.io.IOException;
@@ -113,7 +113,7 @@ public class JsonExporter implements Exporter {
     var file = output.toFile();
 
     var mapper = new ObjectMapper()
-      .setSerializationInclusion(JsonInclude.Include.NON_NULL);
+            .setSerializationInclusion(JsonInclude.Include.NON_NULL);
     var objectWriter = mapper.writerFor(PlatformTypeDefinition.class);
 
     try (var generator = mapper.getFactory().createGenerator(file, JsonEncoding.UTF8)) {

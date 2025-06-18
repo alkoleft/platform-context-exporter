@@ -20,8 +20,8 @@ public class Factory {
       return Collections.emptyList();
     }
     return context.methods().stream()
-      .map(Factory::method)
-      .collect(Collectors.toList());
+            .map(Factory::method)
+            .collect(Collectors.toList());
   }
 
   public List<PropertyDefinition> properties(ContextType context) {
@@ -29,17 +29,17 @@ public class Factory {
       return Collections.emptyList();
     }
     return context.properties().stream()
-      .map(Factory::property)
-      .collect(Collectors.toList());
+            .map(Factory::property)
+            .collect(Collectors.toList());
   }
 
   public PropertyDefinition property(ContextProperty property) {
     return new PropertyDefinition(
-      property.name().getName(),
-      null, // nameEn
-      property.description(),
-      property.accessMode() == AccessMode.READ,
-      returnType(property.types())
+            property.name().getName(),
+            null, // nameEn
+            property.description(),
+            property.accessMode() == AccessMode.READ,
+            returnType(property.types())
     );
   }
 
@@ -47,22 +47,22 @@ public class Factory {
     List<Signature> methodSignatures = signatures(method);
 
     return new MethodDefinition(
-      method.name().getName(),
-      method.description(),
-        methodSignatures,
-        returnType(method)
+            method.name().getName(),
+            method.description(),
+            methodSignatures,
+            returnType(method)
     );
   }
 
   private List<Signature> signatures(ContextMethod method) {
     return method.signatures().stream()
-      .map(s -> new Signature(
-        s.name().getAlias(),
-        s.description(),
-        s.parameters().stream()
-          .map(Factory::parameter)
-          .collect(Collectors.toList())))
-      .collect(Collectors.toList());
+            .map(s -> new Signature(
+                    s.name().getAlias(),
+                    s.description(),
+                    s.parameters().stream()
+                            .map(Factory::parameter)
+                            .collect(Collectors.toList())))
+            .collect(Collectors.toList());
   }
 
   public String returnType(ContextMethod method) {
@@ -75,10 +75,10 @@ public class Factory {
 
   public ParameterDefinition parameter(ContextSignatureParameter parameter) {
     return new ParameterDefinition(
-      parameter.isRequired(),
-      parameter.name().getName(),
-      parameter.description(),
-      returnType(parameter.types())
+            parameter.isRequired(),
+            parameter.name().getName(),
+            parameter.description(),
+            returnType(parameter.types())
     );
   }
 
@@ -87,12 +87,12 @@ public class Factory {
       return Collections.emptyList();
     }
     return context.constructors().stream()
-      .map(s -> new Signature(
-        s.name().getAlias(),
-        s.description(),
-        s.parameters().stream()
-          .map(Factory::parameter)
-          .collect(Collectors.toList())))
-      .collect(Collectors.toList());
+            .map(s -> new Signature(
+                    s.name().getAlias(),
+                    s.description(),
+                    s.parameters().stream()
+                            .map(Factory::parameter)
+                            .collect(Collectors.toList())))
+            .collect(Collectors.toList());
   }
 }
