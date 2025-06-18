@@ -6,7 +6,6 @@ import com.github._1c_syntax.bsl.context.api.Context;
 import com.github._1c_syntax.bsl.context.platform.PlatformContextType;
 import com.github._1c_syntax.bsl.context.platform.PlatformGlobalContext;
 import org.springframework.stereotype.Service;
-import ru.alkoleft.context.platform.dto.BaseTypeDefinition;
 import ru.alkoleft.context.platform.dto.Factory;
 import ru.alkoleft.context.platform.dto.MethodDefinition;
 import ru.alkoleft.context.platform.dto.ParameterDefinition;
@@ -56,21 +55,6 @@ public class BaseExporterLogic implements ExporterLogic {
             new PropertyDefinition("КаталогВременныхФайлов", "TempFilesDir", "Каталог временных файлов", true, "String"),
             new PropertyDefinition("РазделительСтрок", "LineSeparator", "Разделитель строк", true, "String"),
             new PropertyDefinition("РазделительПути", "PathSeparator", "Разделитель пути", true, "String")
-    );
-  }
-
-  /**
-   * Returns list of 1C platform types (demo data).
-   *
-   * @return unmodifiable list of type definitions
-   */
-  public static List<BaseTypeDefinition> getTypes() {
-    return List.of(
-            new BaseTypeDefinition("Строка", "Строковый тип данных", "String"),
-            new BaseTypeDefinition("Число", "Числовой тип данных", "Number"),
-            new BaseTypeDefinition("Булево", "Логический тип данных", "Boolean"),
-            new BaseTypeDefinition("Дата", "Тип данных для работы с датой и временем", "Date"),
-            new BaseTypeDefinition("Неопределено", "Неопределенное значение", "Undefined")
     );
   }
 
