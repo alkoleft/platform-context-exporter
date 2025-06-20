@@ -84,7 +84,7 @@ Linux/Mac
 ```json
 {
   "mcpServers": {
-    "1c-platform-api": {
+    "1c-platform": {
       "command": "java",
       "args": [
         "-jar", 
@@ -101,7 +101,7 @@ Linux/Mac
 ```json
 {
   "mcpServers": {
-    "1c-platform-api": {
+    "1c-platform": {
       "command": "java",
       "args": [
         "-jar", 
@@ -126,7 +126,7 @@ Linux/Mac
 ```json
 {
   "mcpServers": {
-    "1c-platform-api": {
+    "1c-platform": {
       "command": "java",
       "args": [
         "-jar", 
@@ -143,7 +143,7 @@ Linux/Mac
 ```json
 {
   "mcpServers": {
-    "1c-platform-api": {
+    "1c-platform": {
       "command": "java",
       "args": [
         "-jar", 
