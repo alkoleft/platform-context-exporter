@@ -75,6 +75,59 @@ java -jar build/libs/bsl-context-exporter.jar mcp-server \
   --verbose
 ```
 
+### Запуск в Docker c STDIO
+- В папке с `Dockerfile'ом` рядом должен быть JAR-файл.
+- Собираем docker image:
+```bash
+docker build -t 1c-platform-mcp-server-stdio -f Dockerfile.stdio --build-arg APP_VERSION=х.х.х .
+```
+
+**Пример настройки IDE при запуске в Docker через STDIO**:
+```json
+{
+    "mcpServers": {
+        "1c-platform-stdio": {
+            "command": "docker",
+            "args": [
+                "run",
+                "--rm",
+                "-i",
+                "-v",
+                "...platform/bin:/app/1c-platform:ro",
+                "1c-platform-mcp-server-stdio",
+                "--platform-path",
+                "/app/1c-platform"
+            ]
+        }
+    }
+}
+```
+
+### Запуск в Docker c проксированием в SSE
+Это вариант, если хотите запускать MCP на удаленном хосте с доступом по сети.
+- Для проксирования используется пакет [Supergateway](https://github.com/supercorp-ai/supergateway)
+- В папке с `Dockerfile'ом` рядом должен быть JAR-файл.
+- Собираем и запускаем docker:
+```bash
+docker build -t 1c-platform-mcp-server-sse -f Dockerfile.sse --build-arg APP_VERSION=0.1.4 .
+
+docker run -d \
+  -v ./platform:/app/1c-platform:ro \
+  -p 8001:8000 \
+  1c-platform-mcp-server-sse
+```
+
+**Пример настройки IDE при запуске в Docker с SSE**:
+```json
+{
+    "mcpServers": {
+        "1c-platform-sse": {
+            "url": "http://10.0.0.x:8001/sse"
+        }
+}
+```
+Актуальную версию (APP_VERSION) смотрите в [релизах](https://github.com/alkoleft/platform-context-exporter/releases)
+
 ## Интеграция с AI клиентами
 
 ### Claude Desktop
