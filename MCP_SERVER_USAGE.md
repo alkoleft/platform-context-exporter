@@ -80,10 +80,11 @@ java -jar build/libs/bsl-context-exporter.jar mcp-server \
 ### Claude Desktop
 Добавьте конфигурацию в `claude_desktop_config.json`:
 
+Linux/Mac
 ```json
 {
   "mcpServers": {
-    "1c-platform-api": {
+    "1c-platform": {
       "command": "java",
       "args": [
         "-jar", 
@@ -91,6 +92,23 @@ java -jar build/libs/bsl-context-exporter.jar mcp-server \
         "mcp-server", 
         "--platform-path", 
         "/opt/1cv8/x86_64/8.3.25.1257"
+      ]
+    }
+  }
+}
+```
+для Windows - важно указать каталог bin платформы без указания пути с пробелами
+```json
+{
+  "mcpServers": {
+    "1c-platform": {
+      "command": "java",
+      "args": [
+        "-jar", 
+        "C:\\ваш\\путь\\bsl-context-exporter.jar", 
+        "mcp-server", 
+        "--platform-path", 
+        "C:\\Progra~1\\1cv8\\8.3.23.1912\\bin"
       ]
     }
   }
@@ -104,10 +122,11 @@ Cursor поддерживает MCP серверы через конфигура
 ### Настройка MCP сервера
 Создайте файл `.cursor/mcp.json` в корне проекта (для использования только в текущем проекте) или откройте настройки Cursor (Settings → MCP Servers) для использования во всех проектах:
 
+Linux/Mac
 ```json
 {
   "mcpServers": {
-    "1c-platform-api": {
+    "1c-platform": {
       "command": "java",
       "args": [
         "-jar", 
@@ -115,6 +134,23 @@ Cursor поддерживает MCP серверы через конфигура
         "mcp-server", 
         "--platform-path", 
         "/opt/1cv8/x86_64/8.3.25.1257"
+      ]
+    }
+  }
+}
+```
+для Windows - важно указать каталог bin платформы без указания пути с пробелами
+```json
+{
+  "mcpServers": {
+    "1c-platform": {
+      "command": "java",
+      "args": [
+        "-jar", 
+        "C:\\ваш\\путь\\bsl-context-exporter.jar", 
+        "mcp-server", 
+        "--platform-path", 
+        "C:\\Progra~1\\1cv8\\8.3.23.1912\\bin"
       ]
     }
   }
