@@ -12,6 +12,7 @@ spring:
         name: "1C Platform API Server"
         version: "1.0.0"
         description: "MCP сервер для поиска по API платформы 1С Предприятие"
+        instructions: "MCP сервер для поиска по API платформы 1С Предприятие. Выполняет поиск по свойствам, методам и типам."
         type: SYNC
         # Транспорт - используем STDIO для интеграции с MCP клиентами
         stdio: true

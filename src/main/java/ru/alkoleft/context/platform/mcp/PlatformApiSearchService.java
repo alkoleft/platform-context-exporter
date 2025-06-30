@@ -1,8 +1,11 @@
 package ru.alkoleft.context.platform.mcp;
 
 import com.github._1c_syntax.bsl.context.api.ContextProvider;
+import jakarta.annotation.PostConstruct;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
+import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import ru.alkoleft.context.platform.dto.MethodDefinition;
@@ -75,6 +78,10 @@ public class PlatformApiSearchService {
     this.exporterLogic = exporterLogic;
   }
 
+  @PostConstruct
+  void init(){
+    ensureIndexInitialized();
+  }
   /**
    * Поиск по API платформы 1С Предприятие
    *
@@ -94,7 +101,9 @@ public class PlatformApiSearchService {
   @Tool(name = "search",
           description = "Поиск по API платформы 1С Предприятие. Используйте конкретные термины 1С для получения точных результатов.")
   @Cacheable("api-search")
-  public String search(String query, String type, Integer limit) {
+  public String search(@ToolParam(description = "Поисковый запрос. Используйте конкретные термины из 1С: методы ('НайтиПоСсылке', 'ВыполнитьОбработку'), типы ('Справочник', 'Документ'), свойства ('Ссылка', 'Код', 'Наименование')") String query, 
+                       @ToolParam(description = "Тип искомого элемента API: 'method' - методы, 'property' - свойства, 'type' - типы данных, null - все типы") String type, 
+                       @ToolParam(description = "Максимальное количество результатов (по умолчанию 10, максимум 50)") Integer limit) {
     // Устанавливаем значение по умолчанию для limit
     int effectiveLimit = (limit != null) ? limit : 10;
     if (query == null || query.trim().isEmpty()) {
@@ -110,9 +119,6 @@ public class PlatformApiSearchService {
 
     // Нормализация запроса
     String normalizedQuery = query.trim().toLowerCase();
-
-    // Преобразование пользовательских запросов в более точные термины
-    normalizedQuery = enhanceSearchQuery(normalizedQuery);
 
     // Поиск в соответствующих индексах
     List<Object> searchResults = performIntelligentSearch(normalizedQuery, normalizeType(type));
@@ -143,7 +149,8 @@ public class PlatformApiSearchService {
   @Tool(name = "info",
           description = "Получение детальной информации об элементе API платформы 1С. Требует точное имя элемента.")
   @Cacheable("api-info")
-  public String getInfo(String name, String type) {
+  public String getInfo(@ToolParam(description = "Точное имя элемента API в 1С. Примеры: 'НайтиПоСсылке', 'СправочникСсылка', 'Ссылка', 'Код'") String name, 
+                        @ToolParam(description = "Уточнение типа элемента: 'method' - метод/функция, 'property' - свойство/реквизит, 'type' - тип данных, null - автоматическое определение") String type) {
     if (name == null || name.trim().isEmpty()) {
       return "❌ **Ошибка:** Имя элемента не может быть пустым";
     }
@@ -185,7 +192,8 @@ public class PlatformApiSearchService {
   @Tool(name = "getMember",
           description = "Получение информации о методе или свойстве конкретного типа 1С. Используйте точные имена типов и членов.")
   @Cacheable("api-member")
-  public String getMember(String typeName, String memberName) {
+  public String getMember(@ToolParam(description = "Имя типа 1С. Примеры: 'СправочникСсылка', 'ДокументОбъект', 'Строка', 'Число', 'Дата'") String typeName, 
+                          @ToolParam(description = "Имя метода или свойства типа. Примеры: 'НайтиПоКоду', 'Записать', 'Код', 'Наименование', 'Длина'") String memberName) {
     if (typeName == null || typeName.trim().isEmpty() ||
             memberName == null || memberName.trim().isEmpty()) {
       return "❌ **Ошибка:** Имя типа и имя члена не могут быть пустыми";
@@ -241,7 +249,7 @@ public class PlatformApiSearchService {
   @Tool(name = "getConstructors",
           description = "Получение списка конструкторов для указанного типа 1С. Показывает способы создания объектов данного типа.")
   @Cacheable("api-constructors")
-  public String getConstructors(String typeName) {
+  public String getConstructors(@ToolParam(description = "Имя типа 1С для получения конструкторов. Примеры: 'СправочникМенеджер', 'ДокументМенеджер', 'Запрос', 'ТаблицаЗначений'") String typeName) {
     if (typeName == null || typeName.trim().isEmpty()) {
       return "❌ **Ошибка:** Имя типа не может быть пустым";
     }
@@ -280,7 +288,7 @@ public class PlatformApiSearchService {
   @Tool(name = "getMembers",
           description = "Получение полного списка всех методов и свойств для указанного типа 1С. Полный справочник API типа.")
   @Cacheable("api-members")
-  public String getMembers(String typeName) {
+  public String getMembers(@ToolParam(description = "Имя типа 1С для получения полного списка методов и свойств. Примеры: 'СправочникСсылка', 'ДокументОбъект', 'Строка', 'ТаблицаЗначений', 'Запрос'") String typeName) {
     if (typeName == null || typeName.trim().isEmpty()) {
       return "❌ **Ошибка:** Имя типа не может быть пустым";
     }
@@ -357,52 +365,8 @@ public class PlatformApiSearchService {
       }
 
     } catch (Exception e) {
-      log.warn("Не удалось загрузить данные из контекста платформы, используем фикстуры", e);
+      log.warn("Не удалось загрузить данные из контекста платформы", e);
     }
-  }
-
-  /**
-   * Преобразование пользовательских запросов в более точные поисковые термины
-   */
-  private String enhanceSearchQuery(String originalQuery) {
-    // Словарь для преобразования пользовательских запросов в термины 1С
-    Map<String, String> queryEnhancements = new HashMap<>();
-    queryEnhancements.put("параметры запроса", "запрос параметр установить");
-    queryEnhancements.put("получение параметров запроса", "запрос получить параметр установитьпараметр");
-    queryEnhancements.put("работа с запросами", "запрос выполнить установить");
-    queryEnhancements.put("параметры", "параметр установить получить");
-    queryEnhancements.put("работа со справочниками", "справочник найти создать");
-    queryEnhancements.put("создание документов", "документ создать записать");
-    queryEnhancements.put("получение данных", "получить данные найти выбрать");
-    queryEnhancements.put("работа с базой", "запрос выполнить база данных");
-    queryEnhancements.put("методы строк", "строка врег нрег сокрлп длина");
-    queryEnhancements.put("работа с датами", "дата формат текущая добавить");
-    queryEnhancements.put("массивы", "массив добавить найти количество");
-    queryEnhancements.put("таблицы значений", "таблицазначений добавить найти колонка строка");
-
-    String enhanced = originalQuery;
-
-    // Попытка найти точное соответствие
-    for (Map.Entry<String, String> entry : queryEnhancements.entrySet()) {
-      if (enhanced.contains(entry.getKey())) {
-        enhanced = enhanced.replace(entry.getKey(), entry.getValue());
-        break;
-      }
-    }
-
-    // Дополнительные улучшения для общих терминов
-    enhanced = enhanced
-            .replace("как получить", "получить")
-            .replace("как создать", "создать")
-            .replace("как найти", "найти")
-            .replace("способы", "метод")
-            .replace("функции", "метод")
-            .replace("свойства", "свойство")
-            .replace(" api", "")
-            .replace("платформы", "")
-            .replace("1с", "");
-
-    return enhanced.trim();
   }
 
   /**
@@ -419,7 +383,7 @@ public class PlatformApiSearchService {
 
   /**
    * Главный интеллектуальный алгоритм поиска с 4 уровнями приоритета
-   * 
+   *
    * Приоритет 1 (ВЫСШИЙ): Объединение слов в составные типы
    * Приоритет 2 (ВЫСОКИЙ): Тип + член
    * Приоритет 3 (СРЕДНИЙ): Обычный поиск (существующий алгоритм)
@@ -954,22 +918,20 @@ public class PlatformApiSearchService {
               .findFirst();
     }
 
-    switch (type) {
-      case "method":
-        return Optional.ofNullable(globalMethodsIndex.get(name)).map(o -> o);
-      case "property":
-        return Optional.ofNullable(globalPropertiesIndex.get(name)).map(o -> o);
-      case "type":
-        return Optional.ofNullable(typesIndex.get(name)).map(o -> o);
-      default:
-        return Optional.empty();
-    }
+    return switch (type) {
+      case "method" -> Optional.ofNullable(globalMethodsIndex.get(name)).map(o -> o);
+      case "property" -> Optional.ofNullable(globalPropertiesIndex.get(name)).map(o -> o);
+      case "type" -> Optional.ofNullable(typesIndex.get(name)).map(o -> o);
+      default -> Optional.empty();
+    };
   }
 
   /**
    * Класс для хранения результатов поиска с приоритетами
    */
+  @Getter
   private static class SearchResult {
+    // Геттеры
     private final Object item;
     private final int priority; // 1-4, где 1 - высший приоритет
     private final int wordsMatched; // количество объединенных слов для приоритета 1
@@ -1000,14 +962,7 @@ public class PlatformApiSearchService {
     public static SearchResult wordOrder(Object item, int wordsMatched, String originalQuery) {
       return new SearchResult(item, 4, wordsMatched, "word-order", originalQuery);
     }
-    
-    // Геттеры
-    public Object getItem() { return item; }
-    public int getPriority() { return priority; }
-    public int getWordsMatched() { return wordsMatched; }
-    public String getMatchType() { return matchType; }
-    public String getOriginalQuery() { return originalQuery; }
-    
+
     /**
      * Сравнение результатов для сортировки по приоритету
      * Приоритет 1 - высший, 4 - низший
