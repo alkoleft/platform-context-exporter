@@ -3,6 +3,7 @@ package ru.alkoleft.context.platform.exporter;
 import com.github._1c_syntax.bsl.context.api.AccessMode;
 import com.github._1c_syntax.bsl.context.api.Availability;
 import com.github._1c_syntax.bsl.context.api.Context;
+import com.github._1c_syntax.bsl.context.api.ContextMethodSignature;
 import com.github._1c_syntax.bsl.context.platform.PlatformContextType;
 import com.github._1c_syntax.bsl.context.platform.PlatformGlobalContext;
 import org.springframework.stereotype.Service;
@@ -13,6 +14,7 @@ import ru.alkoleft.context.platform.dto.PlatformTypeDefinition;
 import ru.alkoleft.context.platform.dto.PropertyDefinition;
 import ru.alkoleft.context.platform.dto.Signature;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -28,35 +30,6 @@ import java.util.stream.Stream;
 public class BaseExporterLogic implements ExporterLogic {
 
   private static final String PRIMARY_SIGNATURE_NAME = "Основной";
-
-  /**
-   * Returns list of global 1C platform methods (demo data).
-   *
-   * @return unmodifiable list of method definitions
-   */
-  public static List<MethodDefinition> getGlobalMethods() {
-    return List.of(
-            new MethodDefinition("Сообщить", "Выводит сообщение пользователю", List.of(), "Void"),
-            new MethodDefinition("Число", "Преобразует значение в число", List.of(), "Number"),
-            new MethodDefinition("Строка", "Преобразует значение в строку", List.of(), "String"),
-            new MethodDefinition("ТекущаяДата", "Возвращает текущую дату", List.of(), "Date"),
-            new MethodDefinition("ПолучитьВремяИсполнения", "Возвращает время выполнения операции", List.of(), "Number")
-    );
-  }
-
-  /**
-   * Returns list of global 1C platform properties (demo data).
-   *
-   * @return unmodifiable list of property definitions
-   */
-  public static List<PropertyDefinition> getGlobalProperties() {
-    return List.of(
-            new PropertyDefinition("КаталогПрограммы", "ProgramDirectory", "Каталог программы", true, "String"),
-            new PropertyDefinition("КаталогВременныхФайлов", "TempFilesDir", "Каталог временных файлов", true, "String"),
-            new PropertyDefinition("РазделительСтрок", "LineSeparator", "Разделитель строк", true, "String"),
-            new PropertyDefinition("РазделительПути", "PathSeparator", "Разделитель пути", true, "String")
-    );
-  }
 
   @Override
   public Stream<PropertyDefinition> extractProperties(PlatformGlobalContext context) {
@@ -85,29 +58,12 @@ public class BaseExporterLogic implements ExporterLogic {
   public Stream<MethodDefinition> extractMethods(PlatformGlobalContext context) {
     Objects.requireNonNull(context, "PlatformGlobalContext cannot be null");
 
-    return Optional.ofNullable(context.methods())
-            .map(List::stream)
-            .orElse(Stream.empty())
-            .filter(method -> method.availabilities().contains(Availability.SERVER)
-                    || method.availabilities().contains(Availability.THIN_CLIENT))
+    return Optional.ofNullable(context.methods()).stream().flatMap(Collection::stream)
             .map(method -> {
               List<Signature> signatures = Optional.ofNullable(method.signatures())
                       .map(sigs -> sigs.stream()
-                              .map(sig -> {
-                                String sigDescription = PRIMARY_SIGNATURE_NAME.equals(sig.name().getName())
-                                        ? sig.description()
-                                        : sig.name().getName() + ". " + sig.description();
-
-                                List<ParameterDefinition> paramsList = Optional.ofNullable(sig.parameters())
-                                        .filter(params -> !params.isEmpty())
-                                        .map(params -> params.stream()
-                                                .map(Factory::parameter)
-                                                .collect(Collectors.toUnmodifiableList()))
-                                        .orElse(Collections.emptyList());
-
-                                return new Signature(sig.name().getAlias(), sigDescription, paramsList);
-                              })
-                              .collect(Collectors.toUnmodifiableList()))
+                              .map(this::toSignature)
+                              .toList())
                       .orElse(Collections.emptyList());
 
               String returnValue = null;
@@ -124,11 +80,24 @@ public class BaseExporterLogic implements ExporterLogic {
             });
   }
 
+  private Signature toSignature(ContextMethodSignature sig){
+    String sigDescription = PRIMARY_SIGNATURE_NAME.equals(sig.name().getName())
+            ? sig.description()
+            : sig.name().getName() + ". " + sig.description();
+
+    List<ParameterDefinition> paramsList = Optional.ofNullable(sig.parameters())
+            .filter(params -> !params.isEmpty())
+            .map(params -> params.stream()
+                    .map(Factory::parameter)
+                    .toList())
+            .orElse(Collections.emptyList());
+
+    return new Signature(sig.name().getAlias(), sigDescription, paramsList);
+  }
+
   @Override
   public Stream<PlatformTypeDefinition> extractTypes(List<Context> contexts) {
-    return Optional.ofNullable(contexts)
-            .map(List::stream)
-            .orElse(Stream.empty())
+    return Optional.ofNullable(contexts).stream().flatMap(Collection::stream)
             .filter(PlatformContextType.class::isInstance)
             .map(PlatformContextType.class::cast)
             .map(this::createTypeDefinition);

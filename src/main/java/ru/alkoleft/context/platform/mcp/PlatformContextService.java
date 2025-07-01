@@ -62,50 +62,6 @@ public class PlatformContextService {
   }
 
   /**
-   * Принудительно перезагружает контекст платформы
-   */
-  public void reloadContext() {
-    lock.writeLock().lock();
-    try {
-      log.info("Принудительная перезагрузка контекста платформы");
-      isLoaded = false;
-      cachedProvider = null;
-      loadPlatformContext();
-    } finally {
-      lock.writeLock().unlock();
-    }
-  }
-
-  /**
-   * Устанавливает путь к файлам платформы
-   */
-  public void setPlatformContextPath(String path) {
-    lock.writeLock().lock();
-    try {
-      if (!path.equals(this.platformContextPath)) {
-        this.platformContextPath = path;
-        isLoaded = false;
-        cachedProvider = null;
-        log.info("Изменен путь к контексту платформы: {}", path);
-      }
-    } finally {
-      lock.writeLock().unlock();
-    }
-  }
-
-  /**
-   * Проверяет, загружен ли контекст
-   */
-  public boolean isContextLoaded() {
-    lock.readLock().lock();
-    try {
-      return isLoaded;
-    } finally {
-      lock.readLock().unlock();
-    }
-  }
-
-  /**
    * Загружает контекст платформы
    */
   private void loadPlatformContext() {

@@ -5,12 +5,13 @@ import ru.alkoleft.context.platform.dto.ISignature;
 import ru.alkoleft.context.platform.dto.MethodDefinition;
 import ru.alkoleft.context.platform.dto.PlatformTypeDefinition;
 import ru.alkoleft.context.platform.dto.PropertyDefinition;
+import ru.alkoleft.context.platform.dto.Signature;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Улучшенный сервис форматирования результатов поиска в Markdown для MCP
+ * Улучшенный сервис форматирования результатов поиска в Markdown для MCP.
  * Работает напрямую с DTO объектами без промежуточных слоев
  */
 @Service
@@ -50,18 +51,13 @@ public class MarkdownFormatterService {
       // Много результатов - табличный формат для топ-5
       sb.append("## Топ результаты\n\n");
       sb.append("| Название | Тип | Сигнатура |\n");
-      sb.append("|----------|-----|-----------|");
+      sb.append("|----------|-----|-----------|\n");
 
-      for (int i = 0; i < Math.min(5, results.size()); i++) {
-        Object result = results.get(i);
+      for (Object result : results) {
         sb.append(String.format("| **%s** | %s | `%s` |\n",
                 getObjectName(result),
                 getObjectTypeIcon(result),
-                truncateSignature(getObjectSignature(result), 40)));
-      }
-
-      if (results.size() > 5) {
-        sb.append(String.format("\n*... и еще %d результатов*\n", results.size() - 5));
+                truncateDescription(getObjectSignature(result), 40)));
       }
 
       // Детальное описание первого результата
@@ -138,7 +134,7 @@ public class MarkdownFormatterService {
       sb.append(String.format("## 🔧 Методы (%d)\n\n", type.methods().size()));
       for (MethodDefinition method : type.methods()) {
         sb.append(String.format("- **%s** - %s\n",
-                method.name(),
+                buildMethodSignature(method),
                 method.description() != null ? method.description() : "Описание отсутствует"));
       }
       sb.append("\n");
@@ -174,30 +170,32 @@ public class MarkdownFormatterService {
     sb.append(String.format("# 🔧 %s\n\n", method.name()));
 
     // Сигнатура
-    sb.append("## Сигнатура\n");
-    sb.append("```bsl\n");
-    sb.append(buildMethodSignature(method)).append("\n");
-    sb.append("```\n\n");
-
-    // Параметры
-    if (method.signature() != null && !method.signature().isEmpty()) {
-      sb.append("## Параметры\n");
-      method.signature().forEach(param -> {
-        sb.append(String.format("- **%s** *(%s)* - %s\n",
-                param.name(),
-                param.getType(),
-                param.description() != null ? param.description() : "Описание отсутствует"));
-      });
-      sb.append("\n");
+    for (var sign : method.signature()) {
+      sb.append(String.format("## Сигнатура: %s (%s)\n", sign.name(), sign.description()));
+      sb.append("```bsl\n")
+              .append(buildMethodSignature(method, sign))
+              .append("\n```\n\n");
+      // Параметры
+      if (!sign.params().isEmpty()) {
+        sb.append("### Параметры\n");
+        sign.params().forEach(param -> {
+          sb.append(String.format("- **%s** *(%s)* - %s%s\n",
+                  param.name(),
+                  param.type(),
+                  param.required() ? "(обязательный)" : "",
+                  param.description() != null ? param.description() : "Описание отсутствует"));
+        });
+        sb.append("\n");
+      }
     }
 
     // Возвращаемое значение
-    if (method.getReturnTypeDefinition() != null) {
+    if (method.returnType() != null) {
       sb.append("## Возвращаемое значение\n");
       sb.append(String.format("**%s** - %s\n\n",
-              method.getReturnTypeDefinition().getType(),
-              method.getReturnTypeDefinition().getDescription() != null ?
-                      method.getReturnTypeDefinition().getDescription() : "Описание отсутствует"));
+              method.getReturnTypeDefinition().name(),
+              method.getReturnTypeDefinition().description() != null ?
+                      method.getReturnTypeDefinition().description() : "Описание отсутствует"));
     }
 
     // Описание
@@ -408,32 +406,35 @@ public class MarkdownFormatterService {
    * Построение сигнатуры метода
    */
   private String buildMethodSignature(MethodDefinition method) {
+    if (method.signature() != null && !method.signature().isEmpty()) {
+      return buildMethodSignature(method, method.signature().get(0));
+    } else {
+      StringBuilder sb = new StringBuilder();
+      sb.append(method.name()).append("()");
+      if (method.returnType() != null) {
+        sb.append(": ").append(method.getReturnTypeDefinition().name());
+      }
+      return sb.toString();
+    }
+  }
+
+  private String buildMethodSignature(MethodDefinition method, Signature signature) {
     StringBuilder sb = new StringBuilder();
     sb.append(method.name()).append("(");
 
-    if (method.signature() != null) {
-      sb.append(method.signature().stream()
-              .map(param -> param.name() + ": " + param.getType())
+    if (signature != null) {
+      sb.append(signature.params().stream()
+              .map(param -> param.name() + ": " + param.type())
               .collect(Collectors.joining(", ")));
     }
 
     sb.append(")");
 
-    if (method.getReturnTypeDefinition() != null) {
-      sb.append(": ").append(method.getReturnTypeDefinition().getType());
+    if (method.returnType() != null) {
+      sb.append(": ").append(method.getReturnTypeDefinition().name());
     }
 
     return sb.toString();
-  }
-
-  /**
-   * Обрезка сигнатуры
-   */
-  private String truncateSignature(String signature, int maxLength) {
-    if (signature.length() <= maxLength) {
-      return signature;
-    }
-    return signature.substring(0, maxLength - 3) + "...";
   }
 
   /**
